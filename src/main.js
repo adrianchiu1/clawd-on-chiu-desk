@@ -84,6 +84,7 @@ const createSettingsEffectRouter = require("./settings-effect-router");
 const { registerSessionIpc } = require("./session-ipc");
 const { registerPetInteractionIpc } = require("./pet-interaction-ipc");
 const { createSystemWakeRecovery } = require("./system-wake-recovery");
+const { createDesktopActivityMonitor } = require("./desktop-activity");
 const { formatLocalTimestamp } = require("./log-timestamp");
 const { launchClaudeSession, openTerminalAt } = require("./launch-claude");
 const { dialog: electronDialog } = require("electron");
@@ -305,6 +306,7 @@ let shortcutRuntime = null;
 let themeRuntime = null;
 let agentRuntime = null;
 let systemWakeRecovery = null;
+let desktopActivityMonitor = null;
 let floatingWindowRuntime = null;
 let codexPetMain = null;
 let telegramApprovalSidecar = null;
@@ -865,6 +867,7 @@ let soundMuted = _settingsController.get("soundMuted");
 let soundVolume = _settingsController.get("soundVolume");
 let lowPowerIdleMode = _settingsController.get("lowPowerIdleMode");
 let keepAwakeWhileWorking = _settingsController.get("keepAwakeWhileWorking");
+let activityDanceEnabled = _settingsController.get("activityDanceEnabled");
 let allowEdgePinningCached = _settingsController.get("allowEdgePinning");
 let disableMiniModeCached = _settingsController.get("disableMiniMode");
 let keepSizeAcrossDisplaysCached = _settingsController.get("keepSizeAcrossDisplays");
@@ -1472,6 +1475,7 @@ const _stateCtx = {
   get hitWin() { return hitWin; },
   get doNotDisturb() { return doNotDisturb; },
   set doNotDisturb(v) { doNotDisturb = v; },
+  get activityDanceEnabled() { return activityDanceEnabled; },
   get miniMode() { return _mini.getMiniMode(); },
   get miniTransitioning() { return _mini.getMiniTransitioning(); },
   get mouseOverPet() { return mouseOverPet; },
@@ -2979,6 +2983,8 @@ const _menuCtx = {
   },
   get soundMuted() { return soundMuted; },
   set soundMuted(v) { _settingsController.applyUpdate("soundMuted", v); },
+  get activityDanceEnabled() { return activityDanceEnabled; },
+  set activityDanceEnabled(v) { _settingsController.applyUpdate("activityDanceEnabled", v); },
   get soundVolume() { return soundVolume; },
   get pendingPermissions() { return pendingPermissions; },
   repositionBubbles: () => repositionFloatingBubbles(),
@@ -3122,6 +3128,7 @@ const SETTINGS_MIRROR_SETTERS = {
   detachedIdleStaleMs: (v) => { detachedIdleStaleMs = v; },
   soundMuted: (v) => { soundMuted = v; }, soundVolume: (v) => { soundVolume = v; }, lowPowerIdleMode: (v) => { lowPowerIdleMode = v; },
   keepAwakeWhileWorking: (v) => { keepAwakeWhileWorking = v; },
+  activityDanceEnabled: (v) => { activityDanceEnabled = v; if (_state && typeof _state.reevaluateActivityDance === "function") _state.reevaluateActivityDance(); },
   allowEdgePinning: (v) => { allowEdgePinningCached = v; }, disableMiniMode: (v) => { disableMiniModeCached = v; }, keepSizeAcrossDisplays: (v) => { keepSizeAcrossDisplaysCached = v; resetKeepSizeFrozen(); },
   fullscreenOverlay: (v) => { fullscreenOverlayCached = v; },
   freeRoam: (v) => { _roam.setEnabled(v); },
@@ -3955,6 +3962,19 @@ if (!gotTheLock) {
       ),
     });
     systemWakeRecovery.start();
+    // Desktop activity dancing: poll only the system idle timer and report a
+    // 0/1/2 dance tier into the state machine (lowest-priority display state).
+    // Gate closed while the feature is off or DND is on, so it reports tier 0.
+    desktopActivityMonitor = createDesktopActivityMonitor({
+      powerMonitor,
+      onTier: (tier) => {
+        try { _state.setActivityDanceTier(tier); }
+        catch (err) { safeConsoleError("Clawd: activity dance tier apply failed:", err && err.message); }
+      },
+      isGateOpen: () => activityDanceEnabled && !doNotDisturb,
+      log: sessionLog,
+    });
+    desktopActivityMonitor.start();
     // macOS: bridge the OS app-hidden state (⌘H / Dock right-click → 隐藏) to the
     // pet. Pet windows are setCanHide:NO, so the OS marks the app hidden but the
     // windows refuse to vanish, and an inactive-app Dock Hide fires no
@@ -4020,6 +4040,7 @@ if (!gotTheLock) {
   app.on("before-quit", () => {
     isQuitting = true;
     if (systemWakeRecovery) systemWakeRecovery.dispose();
+    if (desktopActivityMonitor) desktopActivityMonitor.stop();
     try { stopUpdateScheduler(); } catch {}
     releasePowerSaveBlocker();
     flushRuntimeStateToPrefs();

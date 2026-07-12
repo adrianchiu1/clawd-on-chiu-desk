@@ -223,6 +223,11 @@ const SCHEMA = {
   keepSizeAcrossDisplays: { type: "boolean", default: false },
   // Free roam: when enabled and the pet is idle, it will wander around the screen
   freeRoam: { type: "boolean", default: false },
+  // Desktop activity dancing: when enabled and no agent session state is live,
+  // the pet dances while you actively use the keyboard/mouse (measured only via
+  // the system idle timer), escalating with activity intensity. Never overrides
+  // real agent states, permission bubbles, DND, drag/click reactions, etc.
+  activityDanceEnabled: { type: "boolean", default: true },
   // #562: Windows-only. When ON, the pet floats ON TOP of a foreground
   // fullscreen app (e.g. a borderless game) and stays draggable, instead of
   // standing down below it (#538). Default ON — most users want to glance at

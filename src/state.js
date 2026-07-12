@@ -188,6 +188,21 @@ let updateVisualKind = null;
 let updateVisualSvgOverride = null;
 let updateVisualPriority = null;
 
+// ── Desktop activity dancing ──
+// Lowest-priority display state: only shown when the pet would otherwise be on
+// the idle floor and the user is actively using the keyboard/mouse. The tier
+// (0/1/2) is reported by the desktop-activity poller in the main process.
+// Reuses the existing `juggling` state (which has no minDisplay/autoReturn, so
+// it yields to any real state instantly) with a tier-specific svg override.
+let activityDanceTier = 0;
+let activityDanceSvgOverride = null;
+// States that sit at (or below) the idle floor — a tier change only re-resolves
+// the visible animation when the pet is in one of these, so dancing never
+// interrupts a live agent animation or a one-shot sequence.
+const ACTIVITY_DANCE_REAPPLY_STATES = new Set([
+  "idle", "roam", "juggling", "yawning", "dozing", "collapsing", "sleeping", "waking",
+]);
+
 const UPDATE_VISUAL_STATE_MAP = {
   checking: "thinking",
   available: "notification",
@@ -2144,13 +2159,83 @@ function stopKimiPermissionPoll(sessionId) {
   }
 }
 
+// True only when a dance may replace the idle floor: feature on, active tier,
+// and nothing that must take precedence is in play. DND / permission / update
+// visuals also lift the resolved base above idle, but we guard here too so the
+// dance never leaks through an edge path.
+function isActivityDanceEligible() {
+  if (activityDanceTier <= 0) return false;
+  if (ctx.activityDanceEnabled === false) return false;
+  if (ctx.doNotDisturb) return false;
+  if (ctx.miniMode) return false;
+  if (ctx.idlePaused) return false;            // drag / click reaction playing
+  if (hasPermissionAnimationLock()) return false;
+  if (updateVisualState) return false;
+  return true;
+}
+
+// Two fixed assets (first cut): tier 1 → the theme's juggling/groove asset,
+// tier 2 → the theme's most energetic juggling-tier asset (falls back to the
+// groove asset for themes without juggling tiers). Reuses existing assets only.
+function resolveActivityDanceSvg(tier) {
+  const juggling = STATE_SVGS && STATE_SVGS.juggling;
+  const groove = Array.isArray(juggling) && juggling.length ? juggling[0] : null;
+  if (tier >= 2) {
+    const tiers = theme && Array.isArray(theme.jugglingTiers) ? theme.jugglingTiers : [];
+    let best = null;
+    let bestMin = -Infinity;
+    for (const entry of tiers) {
+      if (entry && typeof entry.file === "string" && Number(entry.minSessions) > bestMin) {
+        bestMin = Number(entry.minSessions);
+        best = entry.file;
+      }
+    }
+    return best || groove;
+  }
+  return groove;
+}
+
 function resolveDisplayState() {
-  return resolveDisplayStateFromSessions(sessions, {
+  const base = resolveDisplayStateFromSessions(sessions, {
     statePriority: STATE_PRIORITY,
     permissionLocked: hasPermissionAnimationLock(),
     updateVisualState,
     updateVisualPriority,
   });
+  // Lowest priority: dancing only replaces the bare idle floor. Any live agent
+  // state / permission / update visual lifts `base` above idle and wins.
+  if (base === "idle" && isActivityDanceEligible()) {
+    const svg = resolveActivityDanceSvg(activityDanceTier);
+    if (svg) {
+      activityDanceSvgOverride = svg;
+      return "juggling";
+    }
+  }
+  activityDanceSvgOverride = null;
+  return base;
+}
+
+// Called by the desktop-activity poller when the committed tier changes.
+function setActivityDanceTier(tier) {
+  const next = tier === 2 ? 2 : tier === 1 ? 1 : 0;
+  if (next === activityDanceTier) return;
+  activityDanceTier = next;
+  reevaluateActivityDance();
+}
+
+// Re-resolve the visible animation if — and only if — the pet is currently on
+// the idle floor (or already dancing). Never interrupts a live agent state.
+// Also invoked when the feature toggle flips so turning it off stops a dance
+// immediately (and turning it on can start one while idle).
+//
+// Bails under DND (its sleep is sacred — re-applying would wake the pet) and
+// while a drag/click reaction is playing (applyState clears ctx.idlePaused as a
+// side effect, which would abort the reaction). In both cases the normal
+// resolve path picks up the current tier once the condition clears.
+function reevaluateActivityDance() {
+  if (ctx.miniMode || ctx.doNotDisturb || ctx.idlePaused) return;
+  if (!ACTIVITY_DANCE_REAPPLY_STATES.has(currentState)) return;
+  applyResolvedDisplayState();
 }
 
 function setUpdateVisualState(kind) {
@@ -2169,6 +2254,10 @@ function setUpdateVisualState(kind) {
 }
 
 function getSvgOverride(state) {
+  // When the idle floor was upgraded to a dance, resolveDisplayState stashed the
+  // tier-specific asset here. Only applies to the dance path — real (session-
+  // driven) juggling resets activityDanceSvgOverride to null in resolveDisplayState.
+  if (state === "juggling" && activityDanceSvgOverride) return activityDanceSvgOverride;
   return getSvgOverrideWithDeps(state, {
     updateVisualState,
     updateVisualSvgOverride,
@@ -2291,6 +2380,7 @@ function cleanup() {
 
 return {
   setState, applyState, updateSession, resolveDisplayState, resolveVisualBinding, setUpdateVisualState,
+  setActivityDanceTier, reevaluateActivityDance,
   shouldDropForDnd,
   enableDoNotDisturb, disableDoNotDisturb,
   startStaleCleanup, stopStaleCleanup, startWakePoll, stopWakePoll,
