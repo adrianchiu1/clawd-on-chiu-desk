@@ -1,0 +1,150 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-15 -25 45 45" width="500" height="500">
+  <defs>
+    <style>
+      /* 4-Second Football Juggle Loop — alternating foot kick-ups.
+         Ball path: right foot -> apex -> left foot -> apex -> right foot,
+         so the loop is seamless (two kicks per cycle). */
+
+      .body-bob {
+        transform-origin: 7.5px 13px;
+        animation: body-bob 4s infinite ease-in-out;
+      }
+
+      .breathe-anim {
+        transform-origin: 7.5px 13px;
+        animation: breathe 2s infinite ease-in-out;
+      }
+
+      .arm-l { transform-origin: 1px 9px;  animation: arm-l 4s infinite ease-in-out; }
+      .arm-r { transform-origin: 14px 9px; animation: arm-r 4s infinite ease-in-out; }
+
+      /* Kicking legs pivot at the hip (top of each leg rect). */
+      .leg-kick-r { transform-origin: 11.5px 12px; animation: leg-kick-r 4s infinite ease-in-out; }
+      .leg-kick-l { transform-origin: 3.5px 12px;  animation: leg-kick-l 4s infinite ease-in-out; }
+
+      .ball        { transform-origin: 7.5px 13px; animation: ball-juggle 4s infinite ease-in-out; }
+      .ball-spin   { transform-origin: 7.5px 13px; animation: ball-spin 4s infinite linear; }
+      .ball-shadow { transform-origin: 7.5px 15.5px; animation: ball-shadow 4s infinite ease-in-out; }
+
+      .eyes-track { animation: eyes-track 4s infinite ease-in-out; }
+      .eyes-blink { transform-origin: 7.5px 9px; animation: eye-blink 4s infinite linear; }
+
+      /* --- Keyframes --- */
+
+      @keyframes breathe {
+        0%, 100% { transform: scale(1, 1); }
+        50% { transform: scale(1.02, 0.98) translate(0, 0.5px); }
+      }
+
+      /* Lean toward whichever foot is striking, small hop at each kick. */
+      @keyframes body-bob {
+        0%, 100% { transform: translate(0.6px, 0) rotate(2deg); }
+        25%      { transform: translate(0, -0.8px) rotate(0deg); }
+        50%      { transform: translate(-0.6px, 0) rotate(-2deg); }
+        75%      { transform: translate(0, -0.8px) rotate(0deg); }
+      }
+
+      /* Arms swing up for balance as the ball rises. */
+      @keyframes arm-l {
+        0%, 100% { transform: translate(0, 0) rotate(-10deg); }
+        50%      { transform: translate(0, -1px) rotate(-30deg); }
+      }
+      @keyframes arm-r {
+        0%, 100% { transform: translate(0, -1px) rotate(30deg); }
+        50%      { transform: translate(0, 0) rotate(10deg); }
+      }
+
+      /* Right foot strikes at 0%/100% (ball is down on the right). */
+      @keyframes leg-kick-r {
+        0%, 100% { transform: rotate(-38deg); }
+        8%       { transform: rotate(0deg); }
+        50%, 60% { transform: rotate(0deg); }
+      }
+      /* Left foot strikes at 50% (ball is down on the left). */
+      @keyframes leg-kick-l {
+        0%, 10%  { transform: rotate(0deg); }
+        42%      { transform: rotate(38deg); }
+        50%      { transform: rotate(38deg); }
+        58%      { transform: rotate(0deg); }
+        100%     { transform: rotate(0deg); }
+      }
+
+      @keyframes ball-juggle {
+        0%, 100% { transform: translate(2.6px, 1px); }   /* right foot */
+        25%      { transform: translate(0, -9px); }        /* apex */
+        50%      { transform: translate(-2.6px, 1px); }    /* left foot */
+        75%      { transform: translate(0, -9px); }        /* apex */
+      }
+      @keyframes ball-spin {
+        0%   { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+      /* Shadow shrinks/fades as the ball rises. */
+      @keyframes ball-shadow {
+        0%, 100% { transform: translateX(2.6px) scaleX(1);   opacity: 0.45; }
+        25%      { transform: translateX(0)     scaleX(0.5); opacity: 0.15; }
+        50%      { transform: translateX(-2.6px) scaleX(1);  opacity: 0.45; }
+        75%      { transform: translateX(0)     scaleX(0.5); opacity: 0.15; }
+      }
+
+      /* Eyes follow the ball: up at the apex, toward each foot at the strikes. */
+      @keyframes eyes-track {
+        0%, 100% { transform: translate(2px, 1px); }
+        25%      { transform: translate(0, -1px); }
+        50%      { transform: translate(-2px, 1px); }
+        75%      { transform: translate(0, -1px); }
+      }
+      @keyframes eye-blink {
+        0%, 45%, 49%, 100% { transform: scaleY(1); }
+        47% { transform: scaleY(0.1); }
+      }
+    </style>
+  </defs>
+
+  <!-- Ground shadow (crab) -->
+  <rect class="shadow-anim" x="3" y="15" width="9" height="1" fill="#000000" opacity="0.5"/>
+
+  <!-- Ball shadow -->
+  <ellipse class="ball-shadow" cx="7.5" cy="15.5" rx="1.6" ry="0.5" fill="#000000" opacity="0.45"/>
+
+  <!-- Kicking legs (outer pair) -->
+  <g fill="#DE886D">
+    <rect class="leg-kick-l" x="3" y="12" width="1" height="3"/>
+    <rect class="leg-kick-r" x="11" y="12" width="1" height="3"/>
+  </g>
+  <!-- Planted legs (inner pair) -->
+  <g fill="#DE886D">
+    <rect x="5" y="12" width="1" height="3"/>
+    <rect x="9" y="12" width="1" height="3"/>
+  </g>
+
+  <!-- Animated upper body -->
+  <g class="body-bob">
+    <g class="breathe-anim">
+      <!-- Torso -->
+      <rect x="2" y="6" width="11" height="7" fill="#DE886D"/>
+      <!-- Left arm -->
+      <g class="arm-l"><rect x="0" y="8" width="2" height="2" fill="#DE886D"/></g>
+      <!-- Right arm -->
+      <g class="arm-r"><rect x="13" y="8" width="2" height="2" fill="#DE886D"/></g>
+      <!-- Eyes -->
+      <g class="eyes-track" fill="#000000">
+        <g class="eyes-blink">
+          <rect x="4" y="8" width="1" height="2"/>
+          <rect x="10" y="8" width="1" height="2"/>
+        </g>
+      </g>
+    </g>
+  </g>
+
+  <!-- Football (juggled) -->
+  <g class="ball">
+    <g class="ball-spin">
+      <circle cx="7.5" cy="13" r="1.7" fill="#FFFFFF" stroke="#1A1A1A" stroke-width="0.35"/>
+      <!-- Pentagon-ish patches -->
+      <polygon points="7.5,12 8.2,12.5 7.9,13.4 7.1,13.4 6.8,12.5" fill="#1A1A1A"/>
+      <rect x="6.1" y="12.9" width="0.5" height="0.5" fill="#1A1A1A"/>
+      <rect x="8.4" y="12.9" width="0.5" height="0.5" fill="#1A1A1A"/>
+    </g>
+  </g>
+</svg>

@@ -136,6 +136,10 @@
     {
       "file": "clawd-idle-reading.svg",
       "duration": 14000
+    },
+    {
+      "file": "clawd-football.svg",
+      "duration": 8000
     }
   ],
   "displayHintMap": {
