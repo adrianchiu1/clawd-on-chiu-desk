@@ -169,8 +169,8 @@
     "publish": [
       {
         "provider": "github",
-        "owner": "rullerzhou-afk",
-        "repo": "clawd-on-desk"
+        "owner": "adrianchiu1",
+        "repo": "clawd-on-chiu-desk"
       }
     ]
   },

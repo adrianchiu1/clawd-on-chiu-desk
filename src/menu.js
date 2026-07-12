@@ -70,6 +70,18 @@ module.exports = function initMenu(ctx) {
     };
   }
 
+  // "Dance with me" quick toggle — desktop activity dancing. Default ON,
+  // persisted via ctx.activityDanceEnabled. When off, the pet never dances to
+  // your keyboard/mouse activity (agent states are unaffected either way).
+  function buildDanceMenuItem() {
+    return {
+      label: t("danceWithMe"),
+      type: "checkbox",
+      checked: ctx.activityDanceEnabled !== false,
+      click: (menuItem) => { ctx.activityDanceEnabled = menuItem.checked; },
+    };
+  }
+
   // DANGER "auto-pilot" quick toggle. Enabling auto-approves EVERY agent
   // permission request with no prompt, so the enable path is gated behind a
   // native modal confirm. Disabling is immediate. After either decision we
@@ -192,6 +204,7 @@ module.exports = function initMenu(ctx) {
         checked: !ctx.soundMuted,
         click: (menuItem) => { ctx.soundMuted = !menuItem.checked; },
       },
+      buildDanceMenuItem(),
     ];
 
     // Dashboard + the danger auto-approve toggle (danger last, as in the
@@ -407,6 +420,7 @@ module.exports = function initMenu(ctx) {
         label: ctx.doNotDisturb ? t("wake") : t("sleep"),
         click: () => ctx.doNotDisturb ? ctx.disableDoNotDisturb() : ctx.enableDoNotDisturb(),
       },
+      buildDanceMenuItem(),
     ];
 
     const workGroup = [

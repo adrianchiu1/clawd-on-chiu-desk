@@ -283,6 +283,79 @@ describe("resolveDisplayState()", () => {
 });
 
 // ═════════════════════════════════════════════════════════════════════════════
+// Group 1b: desktop activity dancing (lowest-priority display state)
+// ═════════════════════════════════════════════════════════════════════════════
+
+describe("resolveDisplayState() activity dancing", () => {
+  let api, ctx;
+  beforeEach(() => { ctx = makeCtx(); api = require("../src/state")(ctx); });
+  afterEach(() => { api.cleanup(); });
+
+  it("tier 0 leaves the idle floor untouched", () => {
+    api.setActivityDanceTier(0);
+    assert.strictEqual(api.resolveDisplayState(), "idle");
+  });
+
+  it("tier 1 dances on the idle floor with the groove asset", () => {
+    api.setActivityDanceTier(1);
+    assert.strictEqual(api.resolveDisplayState(), "juggling");
+    assert.strictEqual(api.getSvgOverride("juggling"), "clawd-headphones-groove.svg");
+  });
+
+  it("tier 2 dances with the energetic juggling asset", () => {
+    api.setActivityDanceTier(2);
+    assert.strictEqual(api.resolveDisplayState(), "juggling");
+    assert.strictEqual(api.getSvgOverride("juggling"), "clawd-working-juggling.svg");
+  });
+
+  it("any live agent state outranks the dance (lowest priority)", () => {
+    api.setActivityDanceTier(2);
+    api.sessions.set("s1", rawSession("thinking"));
+    assert.strictEqual(api.resolveDisplayState(), "thinking");
+    // real (session-driven) juggling must not pick up the dance override
+    api.sessions.set("s1", rawSession("juggling"));
+    assert.strictEqual(api.resolveDisplayState(), "juggling");
+    assert.strictEqual(api.getSvgOverride("juggling"), "clawd-headphones-groove.svg");
+  });
+
+  it("DND suppresses the dance", () => {
+    ctx.doNotDisturb = true;
+    api.setActivityDanceTier(2);
+    assert.strictEqual(api.resolveDisplayState(), "idle");
+  });
+
+  it("the feature toggle suppresses the dance", () => {
+    ctx.activityDanceEnabled = false;
+    api.setActivityDanceTier(2);
+    assert.strictEqual(api.resolveDisplayState(), "idle");
+  });
+
+  it("a drag/click reaction (idlePaused) suppresses the dance", () => {
+    ctx.idlePaused = true;
+    api.setActivityDanceTier(1);
+    assert.strictEqual(api.resolveDisplayState(), "idle");
+  });
+
+  it("an update visual outranks the dance", () => {
+    api.setActivityDanceTier(2);
+    api.setUpdateVisualState("checking"); // → thinking(2)
+    assert.strictEqual(api.resolveDisplayState(), "thinking");
+    api.setUpdateVisualState(null);
+    assert.strictEqual(api.resolveDisplayState(), "juggling");
+  });
+
+  it("tier 2 falls back to the groove asset for themes without juggling tiers", () => {
+    api.cleanup();
+    const noTiers = cloneTheme(_defaultTheme);
+    delete noTiers.jugglingTiers;
+    api = require("../src/state")(makeCtx({ theme: noTiers }));
+    api.setActivityDanceTier(2);
+    assert.strictEqual(api.resolveDisplayState(), "juggling");
+    assert.strictEqual(api.getSvgOverride("juggling"), "clawd-headphones-groove.svg");
+  });
+});
+
+// ═════════════════════════════════════════════════════════════════════════════
 // Group 2: setState() debounce + min display
 // ═════════════════════════════════════════════════════════════════════════════
 
