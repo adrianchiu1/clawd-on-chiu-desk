@@ -42,6 +42,12 @@ OUTPUT_DIR = STUDIO_ROOT / "output"
 SPECS_DIR = OUTPUT_DIR / "specs"
 NAME_RE = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
 CLAUDE_TIMEOUT = 300
+# Generation is pinned to Sonnet: answers in well under a minute, which is
+# what keeps an 8-year-old in the loop, and the prompt already carries all
+# the context quality needs (base puppet, full rules, a worked example, the
+# plan section, and a quality bar). If the pinned model is unavailable on
+# this account, we retry once on the CLI's default model.
+STUDIO_MODEL = "claude-sonnet-5"
 
 # jobId -> {"state": "running"|"done"|"error", "svgUrl": str, "error": str,
 #           "warnings": [str], "file": str}
@@ -94,12 +100,17 @@ def save_svg(grammar, name, svg_text):
     return filename
 
 
+def call_claude_cli(prompt, model):
+    cmd = ["claude", "-p", prompt] + (["--model", model] if model else [])
+    return subprocess.run(cmd, capture_output=True, text=True, timeout=CLAUDE_TIMEOUT)
+
+
 def run_claude_job(job_id, grammar, name, prompt):
     try:
-        result = subprocess.run(
-            ["claude", "-p", prompt],
-            capture_output=True, text=True, timeout=CLAUDE_TIMEOUT,
-        )
+        result = call_claude_cli(prompt, STUDIO_MODEL)
+        if result.returncode != 0:
+            # pinned model may not exist on this account — one retry on default
+            result = call_claude_cli(prompt, None)
         if result.returncode != 0:
             raise RuntimeError(result.stderr.strip() or result.stdout.strip() or "claude CLI failed")
         svg = extract_svg(result.stdout)
@@ -308,6 +319,17 @@ PAGE_HTML = """<!DOCTYPE html>
         max-height: 260px; overflow: auto; text-align: left; white-space: pre-wrap; }
   .filepath { font-size: 12.5px; color: #8a7c73; margin-top: 8px; word-break: break-all; }
   .hidden { display: none; }
+  details.ai { background: #f0f5fb; border: 2px solid #4a7ab5; border-radius: 12px;
+               padding: 10px 14px; margin-bottom: 18px; }
+  details.ai summary { font-weight: 800; cursor: pointer; color: #2d5a92; }
+  details.ai p { margin: 8px 0 4px; font-size: 14px; }
+  details.ai .zh { color: #5a6d84; font-size: 13px; }
+  .fact { background: #f0f5fb; border: 2px dashed #4a7ab5; border-radius: 12px;
+          padding: 10px 14px; margin-top: 14px; font-size: 14px; text-align: left; }
+  .fact b { color: #2d5a92; }
+  .ai-credit { font-size: 13px; color: #5a6d84; background: #f0f5fb;
+               border-radius: 8px; padding: 6px 10px; display: inline-block; margin-top: 10px; }
+  .take-label { font-size: 13px; font-weight: 800; color: #b5482a; text-align: left; margin-top: 14px; }
 </style>
 </head>
 <body>
@@ -315,6 +337,19 @@ PAGE_HTML = """<!DOCTYPE html>
   <h1>🦀 Clawd Animation Studio</h1>
   <p class="sub">You are the director. Fill in the card — the AI is your artist!
     你是导演，填好卡片，AI 是你的画家！</p>
+
+  <details class="ai">
+    <summary>🤖 Who's drawing? It's an AI! 谁在画画？是 AI！</summary>
+    <p>Your artist is <strong>Claude</strong> — an AI (artificial intelligence)
+    computer program, not a person. It learned by reading millions of examples,
+    a bit like doing a mountain of practice. It can't see pictures at all: it
+    reads <em>your words</em> and writes <em>code</em>, and your browser turns
+    that code into the dance.</p>
+    <p>AIs are powerful but not magic: sometimes Claude misunderstands you, and
+    the same question can get a different answer each time. That's why
+    directors look carefully, say it clearer, and try again!</p>
+    <p class="zh">你的画家是 <strong>Claude</strong>——一个 AI（人工智能）电脑程序，不是真人。它靠读过的海量例子学会本领，就像做了一座山那么多的练习。它完全看不见图画：它读的是<em>你的文字</em>，写出来的是<em>代码</em>，浏览器再把代码变成舞蹈。AI 很厉害但不是魔法：它有时会理解错，同一个问题每次的回答也可能不一样。所以导演要仔细看、说得更清楚、再试一次！</p>
+  </details>
 
   <form class="card" id="ideaCard">
     <label>Character family <span class="zh">角色家族</span></label>
@@ -376,17 +411,30 @@ function show(el) { el.classList.remove("hidden"); }
 function hide(el) { el.classList.add("hidden"); }
 function setStage(html) { stage.innerHTML = html; show(stage); stage.scrollIntoView({behavior: "smooth"}); }
 
-form.addEventListener("submit", async (e) => {
-  e.preventDefault();
+let lastPayload = null;
+let takeCount = 0;
+
+// Little AI lessons shown while the AI works. The wait IS the teachable moment.
+const FACTS = [
+  `<b>Did you know?</b> Your artist is an AI named <b>Claude</b>. It learned by
+   reading millions of examples — like a mountain of practice.<br>
+   <b>你知道吗？</b>你的画家是 AI <b>Claude</b>。它靠读过的海量例子学会本领——就像做了一座山的练习。`,
+  `<b>Did you know?</b> The AI can't see pictures! It reads your words and
+   writes <b>code</b> — your browser turns the code into the dance.<br>
+   <b>你知道吗？</b>AI 看不见图画！它读你的文字、写出<b>代码</b>，浏览器再把代码变成舞蹈。`,
+  `<b>Did you know?</b> AIs sometimes misunderstand. If the dance looks wrong,
+   the AI got your idea wrong — say it clearer and try again!<br>
+   <b>你知道吗？</b>AI 有时会理解错。舞蹈不对就是它没懂你的意思——说清楚一点，再来一次！`,
+  `<b>Did you know?</b> Ask an AI the same question twice and you can get two
+   different answers. Try the "same card, ask again" button later!<br>
+   <b>你知道吗？</b>同一个问题问 AI 两次，答案可能不一样。等会儿试试“同一张卡再问一次”按钮！`,
+  `<b>Did you know?</b> Talking to an AI clearly is a real skill called
+   <b>prompting</b>. Great directors are great prompters!<br>
+   <b>你知道吗？</b>把需求跟 AI 讲清楚是一门真本事，叫<b>提示词</b>。好导演都是提示词高手！`,
+];
+
+async function submitCard(payload) {
   hide($("formError"));
-  const payload = {
-    name: $("name").value.trim().replace(/^-+|-+$/g, ""),
-    grammar: $("grammar").value,
-    action: $("action").value, body: $("body").value,
-    eyes: $("eyes").value, effects: $("effects").value,
-    speed: pick("speed"), mood: pick("mood"),
-  };
-  $("name").value = payload.name;
   const res = await fetch("/api/create", { method: "POST",
     headers: {"Content-Type": "application/json"}, body: JSON.stringify(payload) });
   const data = await res.json();
@@ -395,35 +443,79 @@ form.addEventListener("submit", async (e) => {
     show($("formError"));
     return;
   }
+  lastPayload = payload;
   if (data.mode === "claude") pollJob(data.job);
   else showPasteFlow(data);
+}
+
+form.addEventListener("submit", (e) => {
+  e.preventDefault();
+  const payload = {
+    name: $("name").value.trim().replace(/^-+|-+$/g, ""),
+    grammar: $("grammar").value,
+    action: $("action").value, body: $("body").value,
+    eyes: $("eyes").value, effects: $("effects").value,
+    speed: pick("speed"), mood: pick("mood"),
+  };
+  $("name").value = payload.name;
+  submitCard(payload);
 });
 
 function pollJob(jobId) {
+  let factIdx = Math.floor(Math.random() * FACTS.length);
   setStage(`<div class="spinner">🦀</div>
-    <p><strong>Clawd is learning your dance…</strong><br>
-    Clawd 正在学你的舞蹈…<br>
-    <span class="hint">this takes about a minute 大约需要一分钟</span></p>`);
+    <p><strong>Claude the AI is reading your words and writing your dance…</strong><br>
+    AI Claude 正在读你的文字、编写你的舞蹈…<br>
+    <span class="hint">usually one to three minutes 通常一到三分钟</span></p>
+    <div class="fact" id="factBox">${FACTS[factIdx]}</div>`);
+  const factTimer = setInterval(() => {
+    factIdx = (factIdx + 1) % FACTS.length;
+    const box = $("factBox");
+    if (box) box.innerHTML = FACTS[factIdx];
+  }, 8000);
   const timer = setInterval(async () => {
     const res = await fetch(`/api/status?job=${jobId}`);
     const job = await res.json();
     if (job.state === "running") return;
-    clearInterval(timer);
+    clearInterval(timer); clearInterval(factTimer);
     if (job.state === "done") showResult(job);
     else setStage(`<div class="error">😢 ${job.error}</div>
       <button class="small" onclick="location.reload()">Try again 再试一次</button>`);
   }, 2000);
 }
 
+async function toggleCode(btn, svgUrl) {
+  let box = $("codeBox");
+  if (box) { box.remove(); btn.textContent = "🧾 See the code the AI wrote 看 AI 写的代码"; return; }
+  const text = await (await fetch(svgUrl)).text();
+  box = document.createElement("pre");
+  box.id = "codeBox";
+  box.textContent = text;
+  btn.textContent = "🙈 Hide the code 收起代码";
+  btn.insertAdjacentElement("afterend", box);
+  const note = document.createElement("div");
+  note.className = "hint";
+  note.textContent = "The AI wrote all of this from your words — the browser turns it into the dance. AI 根据你的话写出了这些代码，浏览器把它变成舞蹈。";
+  box.insertAdjacentElement("afterend", note);
+}
+
 function showResult(job) {
+  takeCount += 1;
   const warns = (job.warnings || []).map(w => `<div class="warn">⚠️ ${w}</div>`).join("");
   setStage(`
-    <h2>🎉 Your dance! 你的舞蹈！</h2>
+    <h2>🎉 Take ${takeCount}! 第 ${takeCount} 版！</h2>
     <img src="${job.svgUrl}?t=${Date.now()}" alt="your animation">
     ${warns}
-    <div class="filepath">Saved at 已保存在: <code>${job.file}</code></div>
+    <div><span class="ai-credit">🤖 Written by Claude, an AI, from YOUR words —
+      you directed this! 由 AI Claude 根据你的话创作——导演是你！</span></div>
+    <div class="filepath">Saved at 已保存在: <code>${job.file}</code>
+      (each new take replaces the file 新的一版会替换这个文件)</div>
     <button class="small" onclick="hide(stage); form.scrollIntoView({behavior:'smooth'})">
       🎬 Change it and try again 改一改再来一次</button>
+    <button class="small" onclick="submitCard(lastPayload)">
+      🎲 Same card, ask again 同一张卡再问一次</button>
+    <button class="small" onclick="toggleCode(this, '${job.svgUrl}')">
+      🧾 See the code the AI wrote 看 AI 写的代码</button>
     <button class="small" onclick="window.open('${job.svgUrl}','_blank')">
       🔍 Open big 放大看</button>`);
 }
@@ -471,7 +563,7 @@ def main(argv=None):
     url = f"http://127.0.0.1:{args.port}"
     print(f"🦀 Clawd Animation Studio is open at {url}")
     if shutil.which("claude"):
-        print("   claude CLI found — one-click generation is ON")
+        print(f"   claude CLI found — one-click generation is ON (model: {STUDIO_MODEL})")
     else:
         print("   claude CLI not found — the page will use the copy-paste flow")
     print("   Press Ctrl+C to close the studio.")

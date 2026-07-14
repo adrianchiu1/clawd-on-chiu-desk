@@ -122,6 +122,22 @@ def build_prompt(grammar: dict, name: str, description: str, example_svg: str) -
             parts += ["## Animation Plan", "", section, ""]
 
     parts += [
+        "## Quality Bar",
+        "",
+        "The director of this animation is a child, and the result has to",
+        "delight them. Concretely:",
+        "",
+        "- Motion must read instantly: bold, exaggerated movement beats subtle.",
+        "  Use squash-and-stretch on bounces and anticipation before big moves.",
+        "- Animate at least three layers: the body, one secondary part (claws,",
+        "  eyes, head), and at least one effect the brief asks for.",
+        "- Vary the timing: not everything on the same duration. Snappy",
+        "  `step-end` pops for sparkles, smooth easing for the body.",
+        "- Follow the brief faithfully. Where it is vague, choose the most FUN",
+        "  interpretation, never the easiest one.",
+        "- Double-check the loop: every animation's first and last keyframes",
+        "  identical, and durations that divide evenly into the longest one.",
+        "",
         "## Your Task",
         "",
         f"Create an animated SVG named `{prefix}-{name}.svg` with this behavior:",

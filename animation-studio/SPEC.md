@@ -148,6 +148,17 @@ speed/mood chips). On submit the server:
    result inline. Otherwise: returns the prompt for copy-paste into claude.ai
    with a paste-back box that saves + renders identically.
 
+Generation is pinned to `STUDIO_MODEL` (`claude-sonnet-5`): fast turnarounds
+keep young directors engaged, and quality is carried by the prompt (base
+puppet + full rules + worked example + plan section + quality bar), not by
+the model tier. If the pinned model is rejected, the job retries once on the
+CLI's default model. The page is also explicit that the artist is an AI:
+a "Who's drawing? It's an AI!" panel, rotating did-you-know facts about AI
+during generation, an AI credit line on every result, a "see the code the AI
+wrote" toggle, and a "same card, ask again" button that demonstrates
+non-determinism. Keep these when restyling — they are the educational core,
+not decoration.
+
 HTTP API (all JSON):
 
 | Route | Method | Purpose |
@@ -166,8 +177,15 @@ are still only *warned* about by `sanity_check`, so the CSP is the real gate.
 
 ### 3.6 Extending Mode 1 (future work, in priority order)
 
-1. `tools/preview.py`: screenshot an SVG at N timestamps with headless
-   Chromium (`chromium --headless --screenshot`) for a quick strip preview.
+1. `tools/preview.py`: verify/preview an animation at chosen timestamps.
+   IMPORTANT, learned the hard way: plain `chromium --headless --screenshot`
+   captures ~0.1s after load and `--virtual-time-budget` does NOT reliably
+   advance CSS animations — effects without negative delays will look
+   "missing" when they are fine. The reliable method is a small HTML harness
+   that inlines the SVG, then seeks via
+   `document.getAnimations().forEach(a => { a.pause(); a.currentTime = t; })`
+   and reads `getComputedStyle(...)` (drive it with `--dump-dom`, or
+   screenshot after seeking).
 2. GIF recorder: port clawd-tank's `svg2frames.py` + `record_gif.py`
    (Playwright + Pillow) — deliberately out of scope now (adds dependencies).
 3. Studio page: "remix an existing spec" — list `output/specs/*.json` and
