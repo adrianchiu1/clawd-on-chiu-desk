@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Ship It · 上线指南</title>
+<link rel="stylesheet" href="guide-style.css">
+</head>
+<body>
+
+<h1>🚀 Ship It</h1>
+<p class="subtitle">Mode 3 — getting animations into the real app: loading, testing, releasing (for adults) · 模式三：把动画装进真正的应用——加载、测试、发布（给大人）</p>
+
+<p>The kids made something great in <code>animation-studio/output/</code>.
+This guide is how it reaches the actual pet on the desktop. There are two
+paths, and knowing which one you need saves you an hour:</p>
+<p class="zh">孩子们在 <code>output/</code> 里做出了好东西。这份指南教你把它装到桌面上真正的宠物身上。有两条路，选对路能省一小时：</p>
+
+<table>
+  <tr><th></th><th>Path A — User theme 用户主题</th><th>Path B — Built-in 内置发布</th></tr>
+  <tr><td>Best for 适合</td><td>New creature families; quick experiments 新物种、快速试玩</td><td>Permanently improving the default Clawd 永久改进默认 Clawd</td></tr>
+  <tr><td>Needs a release? 需要发版？</td><td><strong>No — instant</strong> 不需要，立即生效</td><td>Yes: version bump + tag + publish 需要：升版本+打标签+发布</td></tr>
+  <tr><td>Reaches 谁能看到</td><td>This computer only 只有这台电脑</td><td>Every installed copy that updates 所有安装并更新的电脑</td></tr>
+</table>
+
+<h2>Path A — Load as a user theme (no release needed)</h2>
+
+<div class="step"><div class="step-num">1</div><div class="step-body">
+<h3>Find the user themes folder 找到用户主题文件夹</h3>
+<pre>Windows:  %APPDATA%\clawd-on-desk\themes\
+macOS:    ~/Library/Application Support/clawd-on-desk/themes/
+Linux:    ~/.config/clawd-on-desk/themes/</pre>
+<p>Create it if it doesn't exist, then make a subfolder per theme, e.g.
+<code>themes/rect-bird/</code>.</p>
+</div></div>
+
+<div class="step"><div class="step-num">2</div><div class="step-body">
+<h3>Assemble the theme 组装主题</h3>
+<p>Inside <code>rect-bird/</code>: a <code>theme.json</code> plus an
+<code>assets/</code> folder containing the SVGs. The repo ships a fully
+commented scaffold at <code>themes/template/theme.json</code> — start from it.
+A minimal working example:</p>
+<pre>{
+  "schemaVersion": 1,
+  "name": "Rect-Bird",
+  "author": "Your kid's name here",
+  "version": "1.0.0",
+  "viewBox": { "x": -15, "y": -25, "width": 45, "height": 45 },
+  "sleepSequence": { "mode": "direct" },
+  "states": {
+    "idle":     ["pip-idle.svg"],
+    "thinking": ["pip-thinking.svg"],
+    "working":  ["pip-working.svg"]
+  }
+}</pre>
+<p><strong>Only three states are mandatory:</strong> <code>idle</code>,
+<code>thinking</code>, <code>working</code> (see
+<code>src/theme-schema.js</code>). Every other state is optional and falls
+back gracefully. <code>"sleepSequence": {"mode": "direct"}</code> avoids
+needing the four sleep-transition animations. Add more states as the kids
+produce them — <code>juggling</code> is the one the dance feature uses.</p>
+<p class="zh">只有三个状态是必需的：<code>idle</code>（发呆）、<code>thinking</code>（思考）、<code>working</code>（工作）。其他都可省略。<code>direct</code> 睡眠模式可以免掉四个睡觉过渡动画。孩子做出新动画就往里加——跳舞功能用的是 <code>juggling</code> 状态。</p>
+</div></div>
+
+<div class="step"><div class="step-num">3</div><div class="step-body">
+<h3>Activate 启用</h3>
+<p>Restart the app → tray menu → Settings → Theme → your theme is listed.
+Switch to it and the pet transforms.</p>
+<p class="zh">重启应用 → 托盘菜单 → 设置 → 主题 → 选择你的主题，宠物立刻变身。</p>
+</div></div>
+
+<h2>Path B — Bake into the built-in Clawd theme (released)</h2>
+
+<div class="step"><div class="step-num">1</div><div class="step-body">
+<h3>Add the file to the repo 把文件放进仓库</h3>
+<p>Copy the SVG into <code>assets/svg/</code>, keeping the
+<code>clawd-*.svg</code> naming.</p>
+</div></div>
+
+<div class="step"><div class="step-num">2</div><div class="step-body">
+<h3>Map it to a state 映射到状态</h3>
+<p>In <code>themes/clawd/theme.json</code>, find <code>"states"</code> and
+either replace an existing file or append yours to the array (the app can
+rotate among several). Example — a new dance for the activity-dance feature:</p>
+<pre>"juggling": ["clawd-headphones-groove.svg", "clawd-dance-party.svg"]</pre>
+<p><strong>Scope note:</strong> mapping files to <em>existing</em> states is
+config-only. Inventing a brand-new state (e.g. "singing") requires app code —
+that's a developer task, not covered here.</p>
+<p class="zh">在 <code>themes/clawd/theme.json</code> 的 <code>states</code> 里替换或追加文件名。注意：只有映射到<strong>现有</strong>状态是纯配置；发明全新状态需要改代码，不在本指南范围。</p>
+</div></div>
+
+<div class="step"><div class="step-num">3</div><div class="step-body">
+<h3>Release 发布</h3>
+<p>The installed app updates from <strong>GitHub Releases</strong> of this
+fork — never from branches. The runbook:</p>
+<ol>
+  <li>Bump <code>"version"</code> in <code>package.json</code>
+  (e.g. 0.11.0 → 0.11.1). <em>Mandatory</em> — the updater only acts on a
+  higher version.</li>
+  <li>Create <code>docs/releases/release-v0.11.1.md</code> with the release
+  notes. <em>Mandatory</em> — CI reads exactly this path and fails without it.</li>
+  <li>Commit to <code>main</code>, then:
+  <pre>git tag v0.11.1 && git push origin main v0.11.1</pre></li>
+  <li>GitHub Actions (<code>.github/workflows/build.yml</code>) builds
+  Windows/macOS/Linux installers and creates a <strong>draft</strong> release.</li>
+  <li>Go to the repo's Releases page and <strong>Publish</strong> the draft.
+  Drafts are invisible to the updater.</li>
+  <li>Installed apps pick it up on the next scheduled check, or immediately
+  via tray → Check for Updates.</li>
+</ol>
+<p class="zh">发布六步：① 升 <code>package.json</code> 版本号（必须）② 写 <code>docs/releases/release-v版本号.md</code>（必须，CI 读这个路径）③ 提交并推送标签 ④ CI 自动构建三平台安装包并创建<strong>草稿</strong>发布 ⑤ 到 Releases 页面点 Publish——草稿对更新器不可见 ⑥ 已安装的应用会自动发现更新。</p>
+</div></div>
+
+<h2>🧪 Testing before you ship 上线前测试</h2>
+<ol>
+  <li><strong>Browser pass:</strong> double-click the SVG. Full loop, no jump
+  at the loop point, nothing clipped, still on-model.</li>
+  <li><strong>Live app pass:</strong> from a repo clone run
+  <code>npm install &amp;&amp; npm start</code>.
+    <ul>
+      <li><code>idle</code>: hands off the mouse and wait.</li>
+      <li><code>working</code>/<code>thinking</code>: start a real Claude Code
+      session in a hooked terminal — or temporarily map your file to
+      <code>idle</code> for instant viewing, then map it back.</li>
+      <li>Dance tiers (this fork's feature): launch with
+      <pre>CLAWD_ACTIVITY_DANCE_FORCE_TIER=2 npm start</pre>
+      to pin the dance regardless of real keyboard activity (1=groove, 2=party,
+      0=off). Also make sure "Dance with Me" is ticked in the tray menu.</li>
+    </ul>
+  </li>
+  <li><strong>Size pass:</strong> in Settings try the smallest and largest pet
+  size — small sizes eat pixel details; confirm the silhouette still reads.</li>
+</ol>
+<p class="zh">三道测试：① 浏览器双击看整圈循环 ② 从代码仓库 <code>npm start</code> 真机测试（想立即看到可临时映射到 idle；跳舞用 <code>CLAWD_ACTIVITY_DANCE_FORCE_TIER=2</code> 强制触发，并确认托盘菜单勾选了“陪我跳舞”）③ 在设置里试最大和最小尺寸，确认轮廓依然清晰。</p>
+
+<h2>🩹 Troubleshooting 排查</h2>
+<table>
+  <tr><th>Symptom 症状</th><th>Cause &amp; fix 原因与解决</th></tr>
+  <tr><td>App says no update found 应用说没有更新</td>
+      <td>Version not bumped, or the release is still a draft. 版本号没升，或发布还是草稿。</td></tr>
+  <tr><td>CI release job failed CI 发布失败</td>
+      <td>Missing <code>docs/releases/release-v&lt;version&gt;.md</code>. 缺少发布说明文件。</td></tr>
+  <tr><td>macOS won't auto-install update macOS 不自动更新</td>
+      <td>Unsigned builds can't auto-install on macOS — download the .dmg from the Releases page manually. 未签名的构建在 macOS 上不能自动安装，需手动下载。</td></tr>
+  <tr><td>Theme doesn't appear in Settings 主题没出现</td>
+      <td>Wrong folder path, or <code>theme.json</code> invalid / missing one of idle/working/thinking. 文件夹路径不对，或 theme.json 无效、缺少三个必需状态。</td></tr>
+  <tr><td>Animation frozen in the app 动画在应用里不动</td>
+      <td>Low-power idle mode may pause animations; also verify the SVG uses CSS keyframes, not SMIL. 可能是低功耗模式暂停了动画；并确认 SVG 用的是 CSS 关键帧而不是 SMIL。</td></tr>
+</table>
+
+<footer>Clawd Animation Studio · Mode 3 · fork: adrianchiu1/clawd-on-chiu-desk</footer>
+</body>
+</html>

@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Make Clawd Dance! · 让 Clawd 跳舞！</title>
+<link rel="stylesheet" href="guide-style.css">
+</head>
+<body>
+
+<h1>🦀 Make Clawd Dance!</h1>
+<p class="subtitle">Mode 1 — for directors age 8 and up (with a grown-up helper) · 模式一：给 8 岁以上的小导演（需要大人帮忙）</p>
+
+<p><strong>You are going to teach Clawd the crab a brand-new dance.</strong>
+You don't need to know how to code. You are the <em>director</em>: you dream up
+the dance, an AI artist draws it, and you decide if it's good enough. Real
+directors make the artist try again — a lot!</p>
+<p class="zh">你将教小螃蟹 Clawd 一支全新的舞！你不需要会写代码。你是<strong>导演</strong>：你来想舞蹈，AI 画家来画，你来决定好不好。真正的导演会让画家改很多次哦！</p>
+
+<h2>Meet Clawd 认识 Clawd</h2>
+<p>Clawd is made of only <strong>rectangles</strong> — like pixel building
+blocks. He has a body, two claws, four legs, two eyes, and a shadow. When he
+dances, the rectangles move — they never change shape into circles. That's the
+rule of his world!</p>
+<p class="zh">Clawd 全身都是<strong>长方形</strong>，就像像素积木。他有身体、两只钳子、四条腿、两只眼睛和一个影子。跳舞时长方形会动，但永远不会变成圆形——这是他世界的规则！</p>
+
+<div class="svg-frame">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 15 16" width="220" height="235">
+    <rect x="3" y="15" width="9" height="1" fill="#000000" opacity="0.5"/>
+    <g fill="#DE886D">
+      <rect x="2" y="6" width="11" height="7"/>
+      <rect x="0" y="9" width="2" height="2"/>
+      <rect x="13" y="9" width="2" height="2"/>
+      <rect x="3" y="13" width="1" height="2"/>
+      <rect x="5" y="13" width="1" height="2"/>
+      <rect x="9" y="13" width="1" height="2"/>
+      <rect x="11" y="13" width="1" height="2"/>
+    </g>
+    <g fill="#000000">
+      <rect x="4" y="8" width="1" height="2"/>
+      <rect x="10" y="8" width="1" height="2"/>
+    </g>
+  </svg>
+  <div class="svg-caption">This is Clawd standing still — his "base pose". 这是 Clawd 站着不动的样子——他的“基本姿势”。</div>
+</div>
+
+<div class="box">
+  <div class="box-title">👀 Want to see finished dances first? 想先看看做好的舞蹈吗？</div>
+  Ask your grown-up to open the folder
+  <code>animation-studio/grammars/rect-crab/examples/</code> and double-click
+  <code>clawd-dance-groove.svg</code> or <code>clawd-dance-party.svg</code>.
+  They dance right in the browser!
+  <div class="zh">请大人打开文件夹 <code>animation-studio/grammars/rect-crab/examples/</code>，双击里面的文件，Clawd 就会在浏览器里跳舞！</div>
+</div>
+
+<div class="step"><div class="step-num">1</div><div class="step-body">
+<h2>Dream up your dance 想出你的舞蹈</h2>
+<p>Fill in the <strong>Idea Card</strong> on the last page (or just answer the
+four questions out loud while your grown-up writes them down):</p>
+<ol>
+  <li><strong>Action</strong> — what is Clawd doing?</li>
+  <li><strong>Body</strong> — how does his body move?</li>
+  <li><strong>Eyes</strong> — what are his eyes doing?</li>
+  <li><strong>Effects</strong> — what magic appears around him? (sparkles? confetti? music notes?)</li>
+</ol>
+<p class="zh">填好最后一页的<strong>创意卡</strong>（或者大声说出四个问题的答案，让大人帮你写下来）：① 动作——Clawd 在做什么？② 身体——身体怎么动？③ 眼睛——眼睛在做什么？④ 特效——他周围出现什么魔法？</p>
+</div></div>
+
+<div class="step"><div class="step-num">2</div><div class="step-body">
+<h2>Give it a name 给它起名字</h2>
+<p>Pick a short name with small letters and dashes, like
+<code>dance-spin</code>, <code>super-jump</code>, or <code>robot-dance</code>.
+The file will be called <code>clawd-<em>your-name</em>.svg</code>.</p>
+<p class="zh">起一个小写字母加“-”的短名字，比如 <code>dance-spin</code>（旋转舞）。文件会叫 <code>clawd-你的名字.svg</code>。</p>
+</div></div>
+
+<div class="step"><div class="step-num">3</div><div class="step-body">
+<h2>Ask the AI artist 请 AI 画家画画</h2>
+<p>This step is for your grown-up helper. There are two ways — both work:</p>
+<p class="zh">这一步请大人帮忙。有两种方法，都可以：</p>
+
+<div class="box adult">
+  <div class="box-title">🧑‍💻 For the grown-up · 给大人看</div>
+  <p><strong>Way A — copy &amp; paste (no setup):</strong></p>
+  <pre>cd animation-studio
+python3 tools/build_prompt.py dance-spin "Clawd spins left and right quickly,
+claws out wide, eyes squeezed happy, yellow sparkles pop around him"</pre>
+  <p>Open the file it creates in <code>output/</code>, copy <em>everything</em>,
+  paste it into <a href="https://claude.ai">claude.ai</a>, and send. Save the
+  SVG code Claude returns as <code>output/clawd-dance-spin.svg</code>
+  (a plain text file with the <code>.svg</code> ending).</p>
+  <p><strong>Way B — one command (Claude CLI installed):</strong></p>
+  <pre>python3 tools/claude_animate.py dance-spin "same description here"</pre>
+  <p>It saves the finished file into <code>output/</code> by itself.</p>
+  <p>Put the child's four Idea-Card answers into the description — the more
+  their words, the more it's <em>their</em> dance.</p>
+</div>
+</div></div>
+
+<div class="step"><div class="step-num">4</div><div class="step-body">
+<h2>Watch it dance! 看它跳舞！</h2>
+<p>Double-click your new file. Your browser opens — and Clawd does
+<strong>your</strong> dance. Watch it loop a few times!</p>
+<p class="zh">双击你的新文件，浏览器打开——Clawd 跳的就是<strong>你的</strong>舞！多看几遍循环！</p>
+</div></div>
+
+<div class="step"><div class="step-num">5</div><div class="step-body">
+<h2>Make it better 让它更棒</h2>
+<p>Not perfect? Great — that's directing! Tell the AI what to change and ask
+again. Director words that work well:</p>
+<ul>
+  <li>"Make it <strong>faster</strong>!" / "slower!"</li>
+  <li>"<strong>Bigger</strong> jumps!"</li>
+  <li>"<strong>More</strong> sparkles!" / "more confetti!"</li>
+  <li>"His eyes should be <strong>closed and happy</strong>."</li>
+</ul>
+<p class="zh">不完美？太好了——这就是导演的工作！告诉 AI 要改什么，再来一次：“快一点！”“跳高一点！”“更多闪光！”“眼睛要开心地眯起来！”</p>
+</div></div>
+
+<h2>🔧 Tinker Time（拆开玩玩）— optional!</h2>
+<p>Your dance file is just text — you can open it and change things yourself!
+Ask your grown-up to open it in a text editor (Notepad works).</p>
+<p class="zh">舞蹈文件其实就是文字——你可以自己打开修改！请大人用记事本打开它。</p>
+
+<div class="box warn">
+  <div class="box-title">⚠️ First: save a copy! 先存一个备份！</div>
+  Copy the file and rename it (like <code>clawd-dance-spin-2.svg</code>) so you
+  can never lose the good one.
+  <div class="zh">先复制文件、改个名字，这样原来的好版本永远不会丢。</div>
+</div>
+
+<h3>Experiment 1 — Speed 速度</h3>
+<p>Find a number like <code>1.6s</code> (that means 1.6 seconds). Make it
+smaller, like <code>0.8s</code> → twice as fast! Save, then double-click the
+file again.</p>
+<p class="zh">找到像 <code>1.6s</code> 这样的数字（1.6 秒）。改小它，比如 <code>0.8s</code>——快一倍！保存后再双击看看。</p>
+
+<h3>Experiment 2 — Colors 颜色</h3>
+<p>Find a color code like <code>#60A5FA</code> (that's blue). Try
+<code>#F87171</code> (red), <code>#34D399</code> (green), or
+<code>#FBBF24</code> (yellow). Never change Clawd's own color
+<code>#DE886D</code> — that's his skin!</p>
+<p class="zh">找到像 <code>#60A5FA</code>（蓝色）的颜色代码，换成红色 <code>#F87171</code>、绿色 <code>#34D399</code> 或黄色 <code>#FBBF24</code>。但不要改 <code>#DE886D</code>——那是 Clawd 的皮肤！</p>
+
+<h3>Experiment 3 — Bigger moves 更大的动作</h3>
+<p>Find <code>rotate(-22deg)</code> or <code>translateY(-3.5px)</code>. Bigger
+numbers = bigger moves. Try <code>rotate(-45deg)</code>. What happens at
+<code>rotate(-360deg)</code>? 😄</p>
+<p class="zh">找到 <code>rotate(-22deg)</code>（旋转）或 <code>translateY(-3.5px)</code>（跳高）。数字越大动作越大。试试 <code>rotate(-360deg)</code> 会怎样？😄</p>
+
+<h2>✅ Director's checklist 导演检查表</h2>
+<ul class="checklist">
+  <li>It dances when I double-click it. 双击就会跳舞。</li>
+  <li>The dance repeats smoothly, no sudden jump. 循环很顺滑，没有突然跳一下。</li>
+  <li>It still looks like Clawd. 看起来还是 Clawd。</li>
+  <li>Nothing falls off the edge of the picture. 没有东西跑出画面。</li>
+  <li>I'm proud of it! 我很自豪！</li>
+</ul>
+
+<div class="page-break"></div>
+
+<h2>🎬 Idea Card 创意卡</h2>
+<p>Name 名字: <code>clawd-________________.svg</code></p>
+
+<h3>1. Action — What is Clawd doing? 动作——Clawd 在做什么？</h3>
+<span class="fill-line"></span>
+
+<h3>2. Body — How does his body move? 身体——身体怎么动？</h3>
+<span class="fill-line"></span>
+
+<h3>3. Eyes — What do his eyes do? 眼睛——眼睛在做什么？</h3>
+<span class="fill-line"></span>
+
+<h3>4. Effects — What appears around him? 特效——周围出现什么？</h3>
+<span class="fill-line"></span>
+
+<p><strong>Speed 速度:</strong> ☐ slow 慢 &nbsp; ☐ medium 中 &nbsp; ☐ FAST! 快！<br>
+<strong>Mood 心情:</strong> ☐ happy 开心 &nbsp; ☐ silly 搞怪 &nbsp; ☐ sleepy 想睡 &nbsp; ☐ excited 激动</p>
+
+<footer>Clawd Animation Studio · Mode 1 · adapted from the MIT-licensed clawd-tank pipeline</footer>
+</body>
+</html>

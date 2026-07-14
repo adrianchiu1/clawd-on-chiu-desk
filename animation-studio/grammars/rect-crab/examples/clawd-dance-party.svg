@@ -1,0 +1,139 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-15 -25 45 45" width="500" height="500">
+  <defs>
+    <style>
+      /* Whole crab jumps to a fast beat (legs come along for the ride). */
+      .crab-jump {
+        transform-box: fill-box;
+        transform-origin: 50% 100%;
+        animation: jump 0.5s infinite ease-in-out;
+      }
+
+      /* Squash on landing, stretch at the top of the jump. */
+      .squash {
+        transform-box: fill-box;
+        transform-origin: 50% 100%;
+        animation: squash 0.5s infinite ease-in-out;
+      }
+
+      /* Claws held high, waving fast. The base pose is part of each keyframe
+         so the raised claws never drop. */
+      .claw-left {
+        transform-box: fill-box;
+        transform-origin: 100% 50%;
+        animation: wave-left 0.25s infinite ease-in-out;
+      }
+      .claw-right {
+        transform-box: fill-box;
+        transform-origin: 0% 50%;
+        animation: wave-right 0.25s infinite ease-in-out;
+      }
+
+      /* Excited wide eyes with a quick blink every few beats. */
+      .eyes-excited {
+        transform-box: fill-box;
+        transform-origin: 50% 50%;
+        animation: excited-blink 2s infinite linear;
+      }
+
+      /* Ground shadow pulses: wide on landing, thin in the air. */
+      .shadow-pulse {
+        transform-box: fill-box;
+        transform-origin: 50% 50%;
+        animation: shadow 0.5s infinite ease-in-out;
+      }
+
+      /* Confetti rains down continuously, each square on its own timing. */
+      .confetti {
+        transform-box: fill-box;
+        transform-origin: 50% 50%;
+        animation: fall 2s infinite linear;
+      }
+      .c2 { animation-delay: -0.25s; }
+      .c3 { animation-delay: -0.5s; }
+      .c4 { animation-delay: -0.75s; }
+      .c5 { animation-delay: -1s; }
+      .c6 { animation-delay: -1.25s; }
+      .c7 { animation-delay: -1.5s; }
+      .c8 { animation-delay: -1.75s; }
+
+      @keyframes jump {
+        0%   { transform: translateY(0); }
+        30%  { transform: translateY(-3.5px); }
+        60%  { transform: translateY(0); }
+        100% { transform: translateY(0); }
+      }
+
+      @keyframes squash {
+        0%   { transform: scale(1.08, 0.9); }
+        30%  { transform: scale(0.97, 1.06); }
+        60%  { transform: scale(1.08, 0.9); }
+        100% { transform: scale(1.08, 0.9); }
+      }
+
+      @keyframes wave-left {
+        0%   { transform: rotate(50deg); }
+        50%  { transform: rotate(75deg); }
+        100% { transform: rotate(50deg); }
+      }
+
+      @keyframes wave-right {
+        0%   { transform: rotate(-50deg); }
+        50%  { transform: rotate(-75deg); }
+        100% { transform: rotate(-50deg); }
+      }
+
+      @keyframes excited-blink {
+        0%, 86%   { transform: scaleY(1.2); }
+        90%       { transform: scaleY(0.2); }
+        94%, 100% { transform: scaleY(1.2); }
+      }
+
+      @keyframes shadow {
+        0%   { transform: scaleX(1.15); }
+        30%  { transform: scaleX(0.75); }
+        60%  { transform: scaleX(1.15); }
+        100% { transform: scaleX(1.15); }
+      }
+
+      @keyframes fall {
+        0%   { transform: translateY(0) rotate(0deg); opacity: 1; }
+        85%  { opacity: 1; }
+        100% { transform: translateY(40px) rotate(180deg); opacity: 0; }
+      }
+    </style>
+  </defs>
+
+  <!-- Confetti layer, behind the crab. Rectangles only. -->
+  <g id="confetti-layer">
+    <rect class="confetti"    x="-11" y="-24" width="0.9" height="0.9" fill="#F87171"/>
+    <rect class="confetti c2" x="-5"  y="-24" width="0.9" height="0.9" fill="#FBBF24"/>
+    <rect class="confetti c3" x="1"   y="-24" width="0.9" height="0.9" fill="#34D399"/>
+    <rect class="confetti c4" x="7"   y="-24" width="0.9" height="0.9" fill="#60A5FA"/>
+    <rect class="confetti c5" x="13"  y="-24" width="0.9" height="0.9" fill="#F472B6"/>
+    <rect class="confetti c6" x="19"  y="-24" width="0.9" height="0.9" fill="#FBBF24"/>
+    <rect class="confetti c7" x="25"  y="-24" width="0.9" height="0.9" fill="#F87171"/>
+    <rect class="confetti c8" x="-8"  y="-24" width="0.9" height="0.9" fill="#FFFFFF"/>
+  </g>
+
+  <rect id="ground-shadow" class="shadow-pulse" x="3" y="15" width="9" height="1" fill="#000000" opacity="0.5"/>
+
+  <g id="master-group" class="crab-jump">
+    <g id="squash-group" class="squash">
+      <g id="body-color-group" fill="#DE886D">
+        <rect id="torso" x="2" y="6" width="11" height="7"/>
+        <rect id="left-arm" class="claw-left" x="0" y="9" width="2" height="2"/>
+        <rect id="right-arm" class="claw-right" x="13" y="9" width="2" height="2"/>
+
+        <rect id="outer-left-leg" x="3" y="13" width="1" height="2"/>
+        <rect id="inner-left-leg" x="5" y="13" width="1" height="2"/>
+        <rect id="inner-right-leg" x="9" y="13" width="1" height="2"/>
+        <rect id="outer-right-leg" x="11" y="13" width="1" height="2"/>
+      </g>
+
+      <g id="eyes-color-group" class="eyes-excited" fill="#000000">
+        <rect id="left-eye" x="4" y="8" width="1" height="2"/>
+        <rect id="right-eye" x="10" y="8" width="1" height="2"/>
+      </g>
+    </g>
+  </g>
+</svg>

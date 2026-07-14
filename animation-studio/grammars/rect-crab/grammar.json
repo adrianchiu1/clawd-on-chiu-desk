@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "id": "rect-crab",
+  "name": "Rect-Crab (Clawd)",
+  "characterName": "Clawd",
+  "filePrefix": "clawd",
+  "tier": "rect",
+  "animationViewBox": "-15 -25 45 45",
+  "outputWidth": 500,
+  "outputHeight": 500,
+  "defaultExample": "examples/clawd-dance-groove.svg",
+  "notes": "The original pixel-rectangle crab from clawd-on-desk / clawd-tank. Character body occupies (0,0)-(15,16) in viewBox units."
+}

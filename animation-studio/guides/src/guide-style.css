@@ -1,0 +1,103 @@
+/* Shared style for Animation Studio guides (screen + PDF print). */
+@page { size: A4; margin: 16mm 15mm; }
+
+* { box-sizing: border-box; }
+
+body {
+  font-family: "Segoe UI", "Helvetica Neue", Arial, "Noto Sans CJK SC",
+    "PingFang SC", "Microsoft YaHei", sans-serif;
+  color: #2b2b2b;
+  line-height: 1.55;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 24px;
+  font-size: 15px;
+}
+
+h1 {
+  font-size: 30px;
+  line-height: 1.2;
+  margin: 0 0 4px;
+  color: #b5482a;
+}
+.subtitle { color: #777; margin: 0 0 24px; font-size: 15px; }
+
+h2 {
+  font-size: 21px;
+  margin: 34px 0 10px;
+  color: #b5482a;
+  border-bottom: 3px solid #f4c9ba;
+  padding-bottom: 4px;
+}
+h3 { font-size: 16px; margin: 20px 0 6px; }
+
+/* Numbered step badges */
+.step { display: flex; gap: 14px; margin: 22px 0; page-break-inside: avoid; }
+.step-num {
+  flex: 0 0 40px; height: 40px; border-radius: 50%;
+  background: #de886d; color: #fff; font-size: 21px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+}
+.step-body { flex: 1; }
+.step-body h2, .step-body h3 { margin-top: 2px; border: none; }
+
+/* Chinese translation blocks */
+.zh {
+  background: #f6f1ec;
+  border-left: 4px solid #de886d;
+  border-radius: 0 8px 8px 0;
+  padding: 8px 12px;
+  margin: 8px 0 4px;
+  color: #4a4038;
+}
+
+/* Callout boxes */
+.box {
+  border: 2px solid #de886d;
+  border-radius: 12px;
+  padding: 12px 16px;
+  margin: 16px 0;
+  page-break-inside: avoid;
+}
+.box.adult { border-color: #4a7ab5; background: #f0f5fb; }
+.box.warn  { border-color: #d9a406; background: #fdf6e0; }
+.box .box-title { font-weight: 700; margin-bottom: 6px; }
+
+code, pre {
+  font-family: "Cascadia Code", Consolas, Menlo, monospace;
+  background: #f3f3f3;
+  border-radius: 4px;
+}
+code { padding: 1px 5px; font-size: 13px; }
+pre {
+  padding: 10px 14px;
+  overflow-x: auto;
+  font-size: 12.5px;
+  line-height: 1.5;
+  page-break-inside: avoid;
+}
+
+table { border-collapse: collapse; width: 100%; margin: 12px 0; }
+th, td { border: 1px solid #dcc9c0; padding: 7px 10px; text-align: left; vertical-align: top; }
+th { background: #f6ece7; }
+
+ul.checklist { list-style: none; padding-left: 4px; }
+ul.checklist li::before { content: "☐  "; }
+
+.fill-line {
+  display: block;
+  border-bottom: 2px dotted #b7a79d;
+  height: 30px;
+  margin: 10px 0 16px;
+}
+
+.svg-frame {
+  text-align: center;
+  margin: 14px 0;
+  page-break-inside: avoid;
+}
+.svg-frame svg { background: #fbf8f6; border: 2px dashed #dcc9c0; border-radius: 10px; }
+.svg-caption { font-size: 12.5px; color: #857a72; margin-top: 4px; }
+
+.page-break { page-break-before: always; }
+footer { margin-top: 40px; font-size: 12px; color: #999; text-align: center; }

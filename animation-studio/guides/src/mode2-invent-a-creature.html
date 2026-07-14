@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Invent a Creature · 发明一个新生物</title>
+<link rel="stylesheet" href="guide-style.css">
+</head>
+<body>
+
+<h1>🐦 Invent a Creature</h1>
+<p class="subtitle">Mode 2 — build a whole new character family (for teens) · 模式二：创造全新的角色家族（适合青少年）</p>
+
+<p>Clawd is a <strong>rect-crab</strong>. In this guide you'll create a sibling
+species — say, a <strong>rect-bird</strong> — as a <em>grammar pack</em>: a
+folder that teaches the AI everything about your creature. Once your pack
+exists, anyone (including the 8-year-olds using the Mode 1 guide) can make
+unlimited animations of YOUR creature with one command.</p>
+<p class="zh">Clawd 是“方块蟹”。在这份指南里，你将创造一个新物种——比如“方块鸟”——做成一个<strong>语法包</strong>：一个教会 AI 你的生物一切的文件夹。语法包做好后，任何人（包括用模式一的弟弟妹妹）都能用一条命令给你的生物做无数动画。</p>
+
+<h2>What's in a grammar pack 语法包里有什么</h2>
+<table>
+  <tr><th>File</th><th>What it is</th></tr>
+  <tr><td><code>grammar.json</code></td><td>Name card: id, character name, file prefix, canvas size 名片：编号、角色名、文件前缀、画布尺寸</td></tr>
+  <tr><td><code>base.svg</code></td><td>The puppet: your creature drawn once, standing still, every part named 木偶：你的生物的静止姿势，每个部件都有名字</td></tr>
+  <tr><td><code>rules.md</code></td><td>The law book: colors, shapes allowed, how animations must work 法律书：颜色、允许的形状、动画规则</td></tr>
+  <tr><td><code>examples/*.svg</code></td><td>At least one finished animation 至少一个完成的动画</td></tr>
+  <tr><td><code>PLANS.md</code> + <code>plans-template.md</code></td><td>Optional: idea briefs and a blank Idea Card 可选：创意简介和空白创意卡</td></tr>
+</table>
+<p>Full technical contract: <code>animation-studio/SPEC.md</code>, section 2.</p>
+
+<div class="step"><div class="step-num">1</div><div class="step-body">
+<h2>Design your puppet on paper 在纸上设计木偶</h2>
+<p>Grid paper, roughly a 15×16 box, <strong>rectangles only</strong>. Your
+creature needs: a body, at least two limbs that can move, eyes, and a ground
+shadow. Budget: <strong>6–12 rectangles</strong>. Fewer than 6 and it can't
+show feelings; more than 12 and the AI starts losing track of parts.</p>
+<p>Give it one unforgettable silhouette trait. Crab = wide body + side claws.
+A bird might be: tall body, a 2×1 beak sticking out, wing rectangles at the
+sides, stick legs.</p>
+<p class="zh">用方格纸，在大约 15×16 的格子里，<strong>只用长方形</strong>设计。必须有：身体、至少两个会动的部件、眼睛、地面影子。预算 6–12 个长方形。给它一个一眼就认出的轮廓特征：螃蟹是宽身体加两侧钳子；鸟可以是高身体、凸出的 2×1 嘴巴、两侧翅膀、细腿。</p>
+</div></div>
+
+<div class="step"><div class="step-num">2</div><div class="step-body">
+<h2>Build <code>base.svg</code> 制作基本姿势</h2>
+<p>Copy <code>grammars/rect-crab/base.svg</code> into a new folder
+<code>grammars/rect-bird/</code> and reshape it rectangle by rectangle. Rules
+of thumb:</p>
+<ul>
+  <li>One <code>&lt;rect&gt;</code> per body part, each with an
+  <code>id</code> named after the part AND its joint: <code>left-wing</code>
+  (pivots at the shoulder), <code>beak</code> (pivots where it meets the head).</li>
+  <li>Group same-colored parts: <code>&lt;g fill="#F2B84B"&gt;…&lt;/g&gt;</code>.</li>
+  <li>Keep a ground line (crab uses y=15) and a shadow rect on it.</li>
+  <li>Check your work by double-clicking the file — the whole creature should
+  be visible, nothing cut off.</li>
+</ul>
+<p class="zh">把 <code>grammars/rect-crab/base.svg</code> 复制到新文件夹 <code>grammars/rect-bird/</code>，一块一块地改。每个部件一个 <code>&lt;rect&gt;</code>，id 用“部件+关节”命名（如 <code>left-wing</code> 在肩膀转动）。同色部件放进一个 <code>&lt;g&gt;</code>。保留地面线和影子。双击检查：整个生物都要看得见。</p>
+</div></div>
+
+<div class="step"><div class="step-num">3</div><div class="step-body">
+<h2>Write the law book: <code>rules.md</code> 写法律书</h2>
+<p>Copy rect-crab's <code>rules.md</code> and edit the parts that describe the
+character; <strong>keep every generic rule</strong> (CSS keyframes only,
+seamless loops, rectangles only, file naming, the checklist). You must update:</p>
+<ul>
+  <li>Body color(s) and eye spec — exact hex codes and positions.</li>
+  <li>The part list with their joints.</li>
+  <li>The animation canvas: pad your base viewBox ~15 units left/right and
+  ~25 up for effects (crab: <code>"-15 -25 45 45"</code>).</li>
+  <li>Creature-specific physics! Crab rules say legs stay planted. A bird's
+  rules should say the opposite: <em>"the bird may leave the ground; wings
+  flap by rotating at the shoulder."</em> This one line changes everything the
+  AI makes.</li>
+</ul>
+<p class="zh">复制方块蟹的 <code>rules.md</code>，只改描述角色的部分；<strong>通用规则全部保留</strong>（只用 CSS 关键帧、无缝循环、只用长方形、文件命名、检查表）。必须更新：身体和眼睛的颜色位置、部件及关节清单、画布大小、生物专属的物理规则——螃蟹“腿不离地”，鸟应该写“可以离地，翅膀在肩膀处转动扇动”。这一行会改变 AI 做的一切。</p>
+</div></div>
+
+<div class="step"><div class="step-num">4</div><div class="step-body">
+<h2>Fill in <code>grammar.json</code> 填名片</h2>
+<pre>{
+  "schemaVersion": 1,
+  "id": "rect-bird",
+  "name": "Rect-Bird (Pip)",
+  "characterName": "Pip",
+  "filePrefix": "pip",
+  "tier": "rect",
+  "animationViewBox": "-15 -25 45 45",
+  "outputWidth": 500,
+  "outputHeight": 500
+}</pre>
+<p><code>id</code> must equal the folder name. <code>filePrefix</code> is how
+output files get named: <code>pip-first-flap.svg</code>.</p>
+<p class="zh"><code>id</code> 必须和文件夹名一样。<code>filePrefix</code> 决定输出文件名。</p>
+</div></div>
+
+<div class="step"><div class="step-num">5</div><div class="step-body">
+<h2>The real test: make its first animation 真正的考试：第一个动画</h2>
+<p>Run your own pack through Mode 1:</p>
+<pre>python3 tools/build_prompt.py first-flap "Pip flaps both wings and
+hops in place, feathers drifting down" --grammar rect-bird</pre>
+<p>Paste the prompt into claude.ai (or use <code>claude_animate.py</code>).
+If the result is off-model — wrong colors, redrawn body, no flapping —
+<strong>the bug is in your <code>rules.md</code></strong>, not in the AI's
+answer. Add the missing rule and try again. When an animation passes the
+checklist, save it into <code>grammars/rect-bird/examples/</code>. Done —
+from now on every future prompt includes it as the worked example, and your
+grammar gets dramatically more reliable.</p>
+<p class="zh">用模式一测试你自己的语法包。如果结果不对——颜色错了、身体被重画、翅膀不动——<strong>问题出在你的 rules.md</strong>，不是 AI。补上缺的规则再试。通过检查表后，把动画存进 <code>examples/</code>。以后每次生成都会带上它做示范，你的语法包会可靠得多。</p>
+</div></div>
+
+<div class="step"><div class="step-num">6</div><div class="step-body">
+<h2>Definition of done 完成标准</h2>
+<ul class="checklist">
+  <li><code>build_prompt.py --grammar rect-bird</code> runs with no errors.</li>
+  <li><code>base.svg</code> shows the whole creature in a browser.</li>
+  <li>Every movable part has its own named rect/group.</li>
+  <li><code>rules.md</code> covers: canvas, colors, parts+joints, physics, looping, naming, checklist.</li>
+  <li>At least one example animation loops seamlessly in a browser.</li>
+  <li>A one-sentence Mode 1 request produces a recognizable, on-model animation.</li>
+</ul>
+<p class="zh">六条全部打勾，你的新物种就正式诞生了！</p>
+</div></div>
+
+<h2>⭐ Advanced: curve grammars (anime style) 进阶：曲线语法（动画风）</h2>
+<div class="box">
+<p>Rect grammars are the beginner tier. A <strong>curve-tier</strong> grammar
+(set <code>"tier": "curve"</code>) may use paths, circles, and rounded shapes —
+that's the door to a 1990s-anime-style character. Everything above still
+applies, plus your <code>rules.md</code> must also pin down:</p>
+<ul>
+  <li><strong>Outlines:</strong> stroke color and width on every shape
+  (e.g. <code>stroke="#222" stroke-width="0.6"</code>) — outlines ARE the anime look.</li>
+  <li><strong>Cel shading:</strong> each color gets exactly one flat shade
+  tone. No gradients — still banned.</li>
+  <li><strong>Signature marks:</strong> blush marks, eye sparkles — define them
+  as reusable shapes with exact positions.</li>
+</ul>
+<p>Ship 2–3 examples instead of 1 — curved styles need more evidence for the
+AI to copy. Expect more iterations. The animation rules never change: CSS
+keyframes, grouped parts, seamless loops.</p>
+<p class="zh">方块语法是入门级。<strong>曲线级</strong>语法（<code>"tier": "curve"</code>）可以用路径、圆形、圆角——这是通往 90 年代动画风角色的大门。以上全部照做，另外 rules.md 还必须规定：描边（颜色和粗细——描边就是动画感的来源）、赛璐璐上色（每种颜色只配一个纯色阴影，仍然禁止渐变）、招牌记号（腮红、眼睛里的高光——写清楚确切位置）。示例要给 2–3 个，迭代次数也会更多。动画规则永远不变：CSS 关键帧、分组部件、无缝循环。</p>
+</div>
+
+<footer>Clawd Animation Studio · Mode 2 · adapted from the MIT-licensed clawd-tank pipeline</footer>
+</body>
+</html>
