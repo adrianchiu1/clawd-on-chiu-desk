@@ -93,11 +93,16 @@ def save_spec(spec, description):
 
 
 def save_svg(grammar, name, svg_text):
+    """Save without clobbering earlier takes: name.svg, then name-take2.svg…"""
     prefix = grammar["meta"].get("filePrefix", "anim")
-    filename = f"{prefix}-{name}.svg"
+    base = f"{prefix}-{name}"
+    filename, take = f"{base}.svg", 1
+    while (OUTPUT_DIR / filename).exists():
+        take += 1
+        filename = f"{base}-take{take}.svg"
     out = OUTPUT_DIR / filename
     out.write_text(svg_text if svg_text.endswith("\n") else svg_text + "\n", encoding="utf-8")
-    return filename
+    return filename, take
 
 
 def call_claude_cli(prompt, model):
@@ -117,10 +122,11 @@ def run_claude_job(job_id, grammar, name, prompt):
         if not svg:
             raise RuntimeError("no <svg> found in the AI's answer — try again")
         warnings = sanity_check(svg)
-        filename = save_svg(grammar, name, svg)
+        filename, take = save_svg(grammar, name, svg)
         with JOBS_LOCK:
             JOBS[job_id] = {"state": "done", "svgUrl": f"/output/{filename}",
-                            "file": f"animation-studio/output/{filename}", "warnings": warnings}
+                            "file": f"animation-studio/output/{filename}",
+                            "take": take, "warnings": warnings}
     except Exception as err:  # noqa: BLE001 — report anything to the page
         with JOBS_LOCK:
             JOBS[job_id] = {"state": "error", "error": str(err)}
@@ -219,6 +225,13 @@ class StudioHandler(BaseHTTPRequestHandler):
         spec = {k: str(data.get(k, "")).strip()
                 for k in ("name", "grammar", "action", "body", "eyes", "effects", "speed", "mood")}
         description = assemble_description(spec)
+        # "Spot the misunderstanding": the director's critique of the previous
+        # take rides along as explicit feedback for the next one.
+        notes = str(data.get("notes", "")).strip()
+        if notes:
+            spec["notes"] = notes
+            description += (" IMPORTANT: the director watched the previous take of this"
+                            f" animation and wants this fixed or changed: {notes}")
         save_spec(spec, description)
 
         example_svg = ""
@@ -255,10 +268,10 @@ class StudioHandler(BaseHTTPRequestHandler):
             return self.send_json(
                 {"error": "That doesn't look like SVG — copy the AI's whole answer and try again."}, 400)
         warnings = sanity_check(svg)
-        filename = save_svg(grammar, name, svg)
+        filename, take = save_svg(grammar, name, svg)
         return self.send_json({"svgUrl": f"/output/{filename}",
                                "file": f"animation-studio/output/{filename}",
-                               "warnings": warnings})
+                               "take": take, "warnings": warnings})
 
 
 def render_page():
@@ -330,6 +343,13 @@ PAGE_HTML = """<!DOCTYPE html>
   .ai-credit { font-size: 13px; color: #5a6d84; background: #f0f5fb;
                border-radius: 8px; padding: 6px 10px; display: inline-block; margin-top: 10px; }
   .take-label { font-size: 13px; font-weight: 800; color: #b5482a; text-align: left; margin-top: 14px; }
+  .gallery { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 14px; }
+  .gallery figure { margin: 0; }
+  .gallery img { width: 130px; background: #fff; border: 2px dashed #dcc9c0; border-radius: 10px; }
+  .gallery figcaption { font-size: 12px; color: #857a72; text-align: center; }
+  .check { background: #fdf6e0; border: 2px solid #d9a406; border-radius: 12px;
+           padding: 10px 14px; margin-top: 14px; text-align: left; font-size: 14px; }
+  .check textarea { margin-top: 8px; min-height: 46px; }
 </style>
 </head>
 <body>
@@ -443,7 +463,8 @@ async function submitCard(payload) {
     show($("formError"));
     return;
   }
-  lastPayload = payload;
+  lastPayload = { ...payload };
+  delete lastPayload.notes;   // notes are per-take, not part of the card
   if (data.mode === "claude") pollJob(data.job);
   else showPasteFlow(data);
 }
@@ -458,6 +479,7 @@ form.addEventListener("submit", (e) => {
     speed: pick("speed"), mood: pick("mood"),
   };
   $("name").value = payload.name;
+  if (!lastPayload || lastPayload.name !== payload.name) { takes = []; takeCount = 0; }
   submitCard(payload);
 });
 
@@ -499,20 +521,43 @@ async function toggleCode(btn, svgUrl) {
   box.insertAdjacentElement("afterend", note);
 }
 
+// Gallery of takes: every generation is kept, on disk AND on screen, so the
+// director can compare attempts side by side (same words ≠ same dance!).
+let takes = [];
+
+function nextTakeWithNotes() {
+  const notes = $("notesBox").value.trim();
+  submitCard(notes ? { ...lastPayload, notes } : { ...lastPayload });
+}
+
 function showResult(job) {
-  takeCount += 1;
+  takeCount = job.take || (takeCount + 1);
+  takes.push({ url: job.svgUrl, take: takeCount });
   const warns = (job.warnings || []).map(w => `<div class="warn">⚠️ ${w}</div>`).join("");
+  const gallery = takes.length > 1 ? `
+    <div class="take-label">All your takes — spot the differences! 你的每一版——找找不同！</div>
+    <div class="gallery">` + takes.map(t => `
+      <figure><img src="${t.url}" alt="take ${t.take}">
+      <figcaption>Take ${t.take}</figcaption></figure>`).join("") + `</div>` : "";
   setStage(`
     <h2>🎉 Take ${takeCount}! 第 ${takeCount} 版！</h2>
     <img src="${job.svgUrl}?t=${Date.now()}" alt="your animation">
     ${warns}
     <div><span class="ai-credit">🤖 Written by Claude, an AI, from YOUR words —
       you directed this! 由 AI Claude 根据你的话创作——导演是你！</span></div>
-    <div class="filepath">Saved at 已保存在: <code>${job.file}</code>
-      (each new take replaces the file 新的一版会替换这个文件)</div>
+    <div class="filepath">Saved at 已保存在: <code>${job.file}</code></div>
+    <div class="check">
+      <b>🕵️ Director's check 导演检查:</b> watch a full loop. What did the AI get
+      right? What did it misunderstand or miss? Write it below — your notes go
+      straight to the artist for the next take.<br>
+      看完整一圈循环：AI 哪里做对了？哪里理解错了？写在下面——你的批注会直接交给画家画下一版。
+      <textarea id="notesBox" placeholder="e.g. the sparkles should be around his claws, and jump HIGHER! 比如：闪光应该在钳子旁边，跳得再高一点！"></textarea>
+      <button class="small" onclick="nextTakeWithNotes()">🎬 Next take with my notes 带上批注拍下一版</button>
+    </div>
+    ${gallery}
     <button class="small" onclick="hide(stage); form.scrollIntoView({behavior:'smooth'})">
-      🎬 Change it and try again 改一改再来一次</button>
-    <button class="small" onclick="submitCard(lastPayload)">
+      ✏️ Change the whole card 重新改卡片</button>
+    <button class="small" onclick="submitCard({ ...lastPayload })">
       🎲 Same card, ask again 同一张卡再问一次</button>
     <button class="small" onclick="toggleCode(this, '${job.svgUrl}')">
       🧾 See the code the AI wrote 看 AI 写的代码</button>

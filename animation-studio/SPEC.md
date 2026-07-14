@@ -156,7 +156,16 @@ CLI's default model. The page is also explicit that the artist is an AI:
 a "Who's drawing? It's an AI!" panel, rotating did-you-know facts about AI
 during generation, an AI credit line on every result, a "see the code the AI
 wrote" toggle, and a "same card, ask again" button that demonstrates
-non-determinism. Keep these when restyling — they are the educational core,
+non-determinism. Every generation is saved as a numbered take
+(`<prefix>-<name>.svg`, then `-take2.svg`, `-take3.svg`… — never overwrite)
+and the page shows a side-by-side gallery of all takes for the current card.
+The result view carries a "Director's check" box: the child names what the
+AI misunderstood, and those notes ride into the next take's description as
+explicit feedback (`notes` field, recorded in the spec file). The Mode 1
+guide adds two learning chapters: the Clear-Words Experiment (vague brief vs
+precise brief, compared in the gallery) and "How did Claude learn?"
+(patterns-from-examples, no eyes, best-guess errors, no memory between
+prompts). Keep all of these when restyling — they are the educational core,
 not decoration.
 
 HTTP API (all JSON):
@@ -164,9 +173,9 @@ HTTP API (all JSON):
 | Route | Method | Purpose |
 |-------|--------|---------|
 | `/` | GET | The Idea Card page (grammar options injected server-side) |
-| `/api/create` | POST | Spec in → `{mode:"claude", job}` or `{mode:"paste", prompt, name, prefix}` |
-| `/api/status?job=<id>` | GET | `{state: running\|done\|error, svgUrl?, file?, warnings?, error?}` |
-| `/api/paste` | POST | `{name, grammar, svg}` → extract, sanity-check, save, `{svgUrl, file, warnings}` |
+| `/api/create` | POST | Spec in (optional `notes`: director's critique of the previous take, appended to the description as explicit feedback) → `{mode:"claude", job}` or `{mode:"paste", prompt, name, prefix}` |
+| `/api/status?job=<id>` | GET | `{state: running\|done\|error, svgUrl?, file?, take?, warnings?, error?}` |
+| `/api/paste` | POST | `{name, grammar, svg}` → extract, sanity-check, save, `{svgUrl, file, take, warnings}` |
 | `/output/<file>.svg` | GET | Serves generated SVGs (only `.svg`, only directly in `output/`) |
 
 Security invariants: localhost bind only; name regex blocks path tricks; the
