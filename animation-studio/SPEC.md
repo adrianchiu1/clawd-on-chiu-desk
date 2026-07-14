@@ -34,6 +34,7 @@ animation-studio/
   SPEC.md                 ← this file
   README.md               ← map + quickstart
   grammars/<id>/          ← one folder per grammar pack (see §2)
+  tools/studio.py         ← Mode 1, interactive Idea Card page (localhost server)
   tools/build_prompt.py   ← Mode 1, copy-paste path
   tools/claude_animate.py ← Mode 1, one-command path (claude CLI)
   guides/                 ← PDFs + HTML sources (guides/src/)
@@ -129,12 +130,48 @@ the copy-paste path.
 URLs, and missing `@keyframes`. Warnings print but do not block the write —
 the human checklist is the gate.
 
-### 3.5 Extending Mode 1 (future work, in priority order)
+### 3.5 Interactive path: the Studio page (`tools/studio.py`)
+
+A stdlib-only local web server that wraps §3.1/§3.2 in a kid-operable UI.
+`python3 tools/studio.py` → binds **127.0.0.1** (never 0.0.0.0) on port 8787
+(`--port` to change, `--no-browser` to suppress auto-open).
+
+Flow: the page shows the Idea Card (grammar picker, name, the four questions,
+speed/mood chips). On submit the server:
+
+1. validates the name (`^[a-z0-9]+(-[a-z0-9]+)*$`) and required fields;
+2. registers the spec at `output/specs/<name>.json` — all form fields plus
+   the assembled `description` and a UTC `created` timestamp;
+3. writes the prompt to `output/<name>.prompt.txt`;
+4. if the `claude` CLI is on PATH (and `forcePaste` was not set): runs the
+   generation in a background thread; the page polls and then renders the
+   result inline. Otherwise: returns the prompt for copy-paste into claude.ai
+   with a paste-back box that saves + renders identically.
+
+HTTP API (all JSON):
+
+| Route | Method | Purpose |
+|-------|--------|---------|
+| `/` | GET | The Idea Card page (grammar options injected server-side) |
+| `/api/create` | POST | Spec in → `{mode:"claude", job}` or `{mode:"paste", prompt, name, prefix}` |
+| `/api/status?job=<id>` | GET | `{state: running\|done\|error, svgUrl?, file?, warnings?, error?}` |
+| `/api/paste` | POST | `{name, grammar, svg}` → extract, sanity-check, save, `{svgUrl, file, warnings}` |
+| `/output/<file>.svg` | GET | Serves generated SVGs (only `.svg`, only directly in `output/`) |
+
+Security invariants: localhost bind only; name regex blocks path tricks; the
+SVG route rejects subpaths and non-`.svg`; served SVGs get a
+`Content-Security-Policy: default-src 'none'; style-src 'unsafe-inline'`
+header and are embedded via `<img>` (no script execution) — generated files
+are still only *warned* about by `sanity_check`, so the CSP is the real gate.
+
+### 3.6 Extending Mode 1 (future work, in priority order)
 
 1. `tools/preview.py`: screenshot an SVG at N timestamps with headless
    Chromium (`chromium --headless --screenshot`) for a quick strip preview.
 2. GIF recorder: port clawd-tank's `svg2frames.py` + `record_gif.py`
    (Playwright + Pillow) — deliberately out of scope now (adds dependencies).
+3. Studio page: "remix an existing spec" — list `output/specs/*.json` and
+   pre-fill the form from one.
 
 ---
 
