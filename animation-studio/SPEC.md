@@ -148,6 +148,19 @@ speed/mood chips). On submit the server:
    result inline. Otherwise: returns the prompt for copy-paste into claude.ai
    with a paste-back box that saves + renders identically.
 
+Generation streams live: the server runs `claude -p --output-format
+stream-json --include-partial-messages --verbose`, parses the line-delimited
+events (`system/init` → model name, `content_block_delta`/`text_delta` →
+code tokens, `thinking_delta` → visible thoughts, `result` → final text) and
+mirrors them into `JOBS[job]["live"]` (`phase`, `code` tail, `thinking`
+tail, `chars`, heartbeat `age`). The page polls every 1.5s and renders a
+terminal panel showing the AI writing the code token by token, a thoughts
+panel when thinking deltas arrive, and a stall warning when `age` > 45s —
+this is both the stuck-detector and an AI lesson (prediction happens one
+chunk at a time). If streaming fails (older CLI, rejected flags), the job
+falls back to a plain blocking `claude -p` run with no live view. A
+watchdog timer kills runs at `CLAUDE_TIMEOUT`.
+
 Generation is pinned to `STUDIO_MODEL` (`claude-sonnet-5`): fast turnarounds
 keep young directors engaged, and quality is carried by the prompt (base
 puppet + full rules + worked example + plan section + quality bar), not by

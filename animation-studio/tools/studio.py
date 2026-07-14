@@ -110,15 +110,95 @@ def call_claude_cli(prompt, model):
     return subprocess.run(cmd, capture_output=True, text=True, timeout=CLAUDE_TIMEOUT)
 
 
+LIVE_TAIL_CHARS = 1400  # how much of the live text the page gets per poll
+
+
+def _update_live(job_id, phase, thinking_parts, text_parts):
+    thinking = "".join(thinking_parts)
+    code = "".join(text_parts)
+    with JOBS_LOCK:
+        job = JOBS.get(job_id)
+        if job is None or job.get("state") != "running":
+            return
+        job["live"] = {
+            "phase": phase,
+            "thinking": thinking[-LIVE_TAIL_CHARS:],
+            "thinkingChars": len(thinking),
+            "code": code[-LIVE_TAIL_CHARS:],
+            "chars": len(code),
+            "updated": time.time(),
+        }
+
+
+def stream_claude(job_id, prompt, model):
+    """Run claude with streaming JSON output, mirroring progress into the job.
+
+    Every token Claude writes lands in JOBS[job_id]["live"] so the page can
+    show the AI working in real time (and detect a stall via the `updated`
+    heartbeat). Returns the final response text; raises RuntimeError on
+    failure.
+    """
+    cmd = ["claude", "-p", prompt,
+           "--output-format", "stream-json", "--include-partial-messages", "--verbose"]
+    if model:
+        cmd += ["--model", model]
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    watchdog = threading.Timer(CLAUDE_TIMEOUT, proc.kill)
+    watchdog.start()
+    text_parts, thinking_parts = [], []
+    result_text = None
+    phase = "reading your idea card…"
+    _update_live(job_id, phase, thinking_parts, text_parts)
+    try:
+        for line in proc.stdout:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                data = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            dtype = data.get("type")
+            if dtype == "system" and data.get("subtype") == "init":
+                phase = f"the AI woke up — model: {data.get('model', '?')}"
+            elif dtype == "system" and data.get("subtype") == "status" and not text_parts:
+                phase = "thinking about your card…"
+            elif dtype == "stream_event":
+                delta = (data.get("event") or {}).get("delta") or {}
+                if delta.get("type") == "text_delta":
+                    text_parts.append(delta.get("text", ""))
+                    phase = "writing your dance code, piece by piece…"
+                elif delta.get("type") == "thinking_delta":
+                    thinking_parts.append(delta.get("thinking", ""))
+                    phase = "thinking — watch the thoughts!"
+            elif dtype == "result":
+                result_text = data.get("result")
+            _update_live(job_id, phase, thinking_parts, text_parts)
+        proc.wait()
+    finally:
+        watchdog.cancel()
+    if proc.returncode != 0:
+        err = (proc.stderr.read() or "").strip()
+        raise RuntimeError(err or f"claude CLI exited with code {proc.returncode}")
+    return result_text or "".join(text_parts)
+
+
 def run_claude_job(job_id, grammar, name, prompt):
     try:
-        result = call_claude_cli(prompt, STUDIO_MODEL)
-        if result.returncode != 0:
-            # pinned model may not exist on this account — one retry on default
-            result = call_claude_cli(prompt, None)
-        if result.returncode != 0:
-            raise RuntimeError(result.stderr.strip() or result.stdout.strip() or "claude CLI failed")
-        svg = extract_svg(result.stdout)
+        try:
+            stdout = stream_claude(job_id, prompt, STUDIO_MODEL)
+        except RuntimeError:
+            # pinned model may not exist on this account, or this CLI may not
+            # support streaming flags — one retry on the CLI's defaults
+            try:
+                stdout = stream_claude(job_id, prompt, None)
+            except RuntimeError:
+                legacy = call_claude_cli(prompt, None)
+                if legacy.returncode != 0:
+                    raise RuntimeError(legacy.stderr.strip() or legacy.stdout.strip()
+                                       or "claude CLI failed")
+                stdout = legacy.stdout
+        svg = extract_svg(stdout)
         if not svg:
             raise RuntimeError("no <svg> found in the AI's answer — try again")
         warnings = sanity_check(svg)
@@ -173,8 +253,11 @@ class StudioHandler(BaseHTTPRequestHandler):
             job_id = (parse_qs(parsed.query).get("job") or [""])[0]
             with JOBS_LOCK:
                 job = JOBS.get(job_id)
+                job = json.loads(json.dumps(job)) if job else None  # deep copy under lock
             if not job:
                 return self.send_json({"state": "error", "error": "unknown job"}, 404)
+            if job.get("live"):
+                job["live"]["age"] = round(time.time() - job["live"].pop("updated"), 1)
             return self.send_json(job)
         if parsed.path.startswith("/output/"):
             return self.serve_svg(parsed.path[len("/output/"):])
@@ -350,6 +433,20 @@ PAGE_HTML = """<!DOCTYPE html>
   .check { background: #fdf6e0; border: 2px solid #d9a406; border-radius: 12px;
            padding: 10px 14px; margin-top: 14px; text-align: left; font-size: 14px; }
   .check textarea { margin-top: 8px; min-height: 46px; }
+  .phase { font-weight: 700; color: #b5482a; }
+  .terminal { background: #201f2b; color: #9fe8a9; font-family: "Cascadia Code",
+              Consolas, Menlo, monospace; font-size: 11.5px; line-height: 1.45;
+              text-align: left; border-radius: 12px; padding: 12px 14px;
+              margin-top: 12px; height: 190px; overflow-y: auto;
+              white-space: pre-wrap; word-break: break-all; }
+  .terminal-label { text-align: left; font-size: 13px; font-weight: 700;
+                    color: #5a4d6e; margin-top: 14px; }
+  .think-box { background: #f4effc; color: #5a4483; border: 2px dashed #a78bda;
+               border-radius: 12px; padding: 10px 14px; margin-top: 12px;
+               font-style: italic; font-size: 13px; text-align: left;
+               max-height: 120px; overflow-y: auto; white-space: pre-wrap; }
+  .stall { background: #fdecec; border: 2px solid #e08a8a; border-radius: 10px;
+           padding: 8px 12px; font-size: 13.5px; margin-top: 10px; }
 </style>
 </head>
 <body>
@@ -483,12 +580,60 @@ form.addEventListener("submit", (e) => {
   submitCard(payload);
 });
 
+function renderLive(live) {
+  const phaseEl = $("phaseLine");
+  if (phaseEl && live.phase) phaseEl.textContent = live.phase;
+
+  // Claude's visible thoughts, when the model thinks out loud
+  const think = $("thinkBox");
+  if (live.thinking && live.thinking.length) {
+    show($("thinkWrap"));
+    think.textContent = live.thinking;
+    think.scrollTop = think.scrollHeight;
+  }
+
+  // the dance code, appearing token by token
+  const term = $("liveCode");
+  if (live.chars > 0) {
+    show($("termWrap"));
+    term.textContent = live.code;
+    term.scrollTop = term.scrollHeight;
+    $("charCount").textContent =
+      `${live.chars.toLocaleString()} characters of dance code written 已写 ${live.chars.toLocaleString()} 个字符`;
+  }
+
+  // heartbeat: warn if the AI has been silent for a while
+  const stall = $("stallBox");
+  if (live.age > 45) {
+    stall.textContent = `Hmm — the AI has been quiet for ${Math.round(live.age)} seconds. `
+      + `It might be stuck; ask a grown-up to check the studio terminal, or wait a bit more. `
+      + `AI 已经 ${Math.round(live.age)} 秒没动静了，可能卡住了——请大人看看终端，或者再等等。`;
+    show(stall);
+  } else {
+    hide(stall);
+  }
+}
+
 function pollJob(jobId) {
   let factIdx = Math.floor(Math.random() * FACTS.length);
   setStage(`<div class="spinner">🦀</div>
-    <p><strong>Claude the AI is reading your words and writing your dance…</strong><br>
-    AI Claude 正在读你的文字、编写你的舞蹈…<br>
+    <p><strong>Claude the AI is making your dance — watch it work!</strong><br>
+    AI Claude 正在做你的舞蹈——看它工作！<br>
+    <span class="phase" id="phaseLine">waking up the AI…</span><br>
     <span class="hint">usually one to three minutes 通常一到三分钟</span></p>
+    <div id="thinkWrap" class="hidden">
+      <div class="terminal-label">🧠 Claude's thoughts, live 思考直播:</div>
+      <div class="think-box" id="thinkBox"></div>
+    </div>
+    <div id="termWrap" class="hidden">
+      <div class="terminal-label">⌨️ Claude writing your dance code, live 代码直播:</div>
+      <div class="terminal" id="liveCode"></div>
+      <div class="hint" id="charCount"></div>
+      <div class="hint">It appears piece by piece because the AI predicts one
+        small chunk at a time — that's really how it works!
+        代码一小段一小段地出现，因为 AI 每次只预测一小块——它真的就是这样工作的！</div>
+    </div>
+    <div id="stallBox" class="stall hidden"></div>
     <div class="fact" id="factBox">${FACTS[factIdx]}</div>`);
   const factTimer = setInterval(() => {
     factIdx = (factIdx + 1) % FACTS.length;
@@ -498,12 +643,12 @@ function pollJob(jobId) {
   const timer = setInterval(async () => {
     const res = await fetch(`/api/status?job=${jobId}`);
     const job = await res.json();
-    if (job.state === "running") return;
+    if (job.state === "running") { if (job.live) renderLive(job.live); return; }
     clearInterval(timer); clearInterval(factTimer);
     if (job.state === "done") showResult(job);
     else setStage(`<div class="error">😢 ${job.error}</div>
       <button class="small" onclick="location.reload()">Try again 再试一次</button>`);
-  }, 2000);
+  }, 1500);
 }
 
 async function toggleCode(btn, svgUrl) {
