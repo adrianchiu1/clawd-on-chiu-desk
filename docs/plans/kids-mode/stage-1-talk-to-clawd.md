@@ -34,6 +34,10 @@ src/llm/
   anthropic.js        Anthropic Messages API adapter (streaming SSE)
   wire-protocol.js    pure: header-line parse/stream-split logic (unit-testable)
 src/kids/
+  pet-adapter.js      the ONLY kids module allowed to import pet/app internals: state
+                      machine entry (emotion states), bubble anchoring, tray/menu items,
+                      hit-window click routing, shortcut registration. Keep it thin; every
+                      upstream file it touches goes in upstream-seam.md (README ground rules)
   kids-mode.js        Kids Mode state: enter/exit, PIN check, agent-muting hooks
   chat-window.js      BrowserWindow lifecycle for the chat box (pattern: src/dashboard.js)
   chat-renderer.js    renderer for chat.html (history, input, streaming, profile picker)

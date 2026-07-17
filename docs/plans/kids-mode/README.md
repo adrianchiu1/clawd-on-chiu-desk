@@ -60,6 +60,19 @@ These are requirements, not suggestions. Violating any of them fails review.
   `path.join(__dirname, ...)` for resources, themed assets, tests with the Node test runner.
 - The LLM wrapper (`src/llm/`) must be provider-agnostic. UI and pedagogy code may never
   import a provider adapter directly — only the wrapper interface.
+- **Kids Mode is a strict overlay on upstream Clawd, not a rewrite.** All new code lives in
+  `src/kids/` and `src/llm/`. Exactly one module — `src/kids/pet-adapter.js` — may import
+  pet/app internals (state machine entry, bubble positioning, tray/menu, hit-window click
+  routing); everything else in kids-land must stay pet-agnostic so Kids Mode remains
+  extractable. Every modified upstream file must be listed, with rationale, in
+  [`upstream-seam.md`](./upstream-seam.md); review that manifest at every upstream merge.
+  Exit criteria for extracting Kids Mode into a standalone app (do not extract before one
+  fires): the seam outgrows ~6 upstream files despite discipline, upstream diverges from
+  what we need, or the family decides to distribute Kids Mode as its own product.
+- Licensing: Clawd is AGPL-3.0-only. Private family use carries no source obligations, but
+  any distribution of Kids Mode (it is a derivative work, regardless of repo layout) must be
+  AGPL with source available. Development happens in the private `clawd-kids` repo; the
+  public fork is kept only as the bridge for pulling upstream updates.
 - Every stage that changes prompts or models must pass the eval harness (Stage 2) before merge,
   once it exists.
 - When a stage lands, update `AGENTS.md` (Core Files, Constraints) and
