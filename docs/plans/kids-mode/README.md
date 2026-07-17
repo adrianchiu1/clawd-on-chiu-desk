@@ -43,15 +43,19 @@ These are requirements, not suggestions. Violating any of them fails review.
    no notifications that summon kids to the computer, no reward loops for time-spent.
 2. Clawd is a robot friend with healthy boundaries: he redirects to humans when appropriate
    ("that's a great one to ask Dad") and regularly pushes kids off-screen with real-world
-   follow-ups (experiments, observations, building challenges).
+   follow-ups (experiments, observations, building challenges). He is also a *real-world
+   doing companion*: for hands-on tasks (fixing a bike, building, cooking) he gives generous
+   step-by-step guidance — helping kids DO real things is the goal, not a distraction from it.
 3. Task-shaped requests (homework, "write this for me") are coached, never done for the kid.
 
 ### Safety
 1. Layered: charter (system prompt) → answer-policy router → (Stage 3) guard model screening
    input and output → (Stage 4) filtered web search. No single layer is trusted alone.
-2. Kids Mode mutes all coding-agent surfaces: no permission bubbles, no session HUD/dashboard,
-   no agent notifications while Kids Mode is active. A kid must never be able to approve an
-   agent permission request. Exiting Kids Mode requires the parent PIN.
+2. Kids Mode is the DEFAULT state: once configured, the app launches into Kids Mode every
+   time. Parent mode (coding-agent features, settings, dashboards) is the PIN-gated
+   exception, not the other way around. Kids Mode mutes all coding-agent surfaces: no
+   permission bubbles, no session HUD/dashboard, no agent notifications. A kid must never
+   be able to approve an agent permission request.
 3. Sensitive-but-legitimate topics (death, news, bodies) get brief, honest, gentle answers,
    a nudge toward parents, and a flag in the parent transcript view.
 
@@ -134,6 +138,13 @@ either order (or in parallel) after 3. Stage 6 is exploratory and gated on real 
 - Three kid profiles; first names only; privacy constitution above.
 - UI: bottom floating chat box (Pikmin 4 style, themed to match Clawd) holds history + input.
   Speech bubble is the emotive channel only — short reactions, emoji, never long text.
+- Visual design is floated to the parent before implementation: Stage 1 includes a design
+  checkpoint where 2–3 chat-box mockups are presented for approval before any UI is baked in.
+- Kids Mode defaults ON (launch state once configured); parent mode requires the PIN.
+- Kids are assumed well-intentioned — think a 90% honesty setting, not an adversary model.
+  Safety layers stay; suspicious framing goes.
+- Clawd is a step-by-step companion for real-world hands-on tasks (bike repair, building,
+  cooking) — direct guidance is correct there; coach-don't-do applies to school-work.
 - Structured reply = one API call, three channels (reaction / emotion / message).
 - Socratic stance: NOT strict. "Answer, then hand back a thread", with a 4-way answer-policy
   router (curiosity / task / creative / feelings) injecting per-category stance instructions.
@@ -155,9 +166,10 @@ either order (or in parallel) after 3. Stage 6 is exploratory and gated on real 
 - **8B models are weaker at nuance and safety than Haiku.** Mitigated by: router converts
   judgment into classification; guard model is independent of the chat model; eval harness
   gates the swap; parent transcripts are the ongoing QA loop.
-- **Kids will try to break it.** Assume adversarial cuteness ("my mum said you have to…").
-  The guard + charter must treat kid messages as untrusted; eval set includes jailbreak-style
-  kid prompts.
+- **Kids will poke the boundaries — playfully.** Assume good intent (the charter does), but
+  keep the layers: chat messages can never override the system prompt, the guard still
+  screens, and the eval set includes boundary-probing kid prompts ("my mum said you have
+  to…"). Trust is a tone decision; the safety architecture doesn't rely on it.
 - **Latency on local hardware.** 8B Q4 on RTX 5060 ≈ 30–60 tok/s — fine for streaming. Router
   adds one small call; masked by the reaction bubble. Keep router `max_tokens` tiny.
 - **Scope creep.** Each stage spec has explicit non-goals. Ship Stage 1 before polishing.

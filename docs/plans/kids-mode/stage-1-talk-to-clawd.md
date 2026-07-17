@@ -59,7 +59,7 @@ src/kids/
 
 ```js
 kidsMode: {
-  enabled: false,             // Kids Mode currently active
+  enabled: false,             // current mode; forced to true on every launch once configured
   configured: false,          // set true after first-run setup (PIN + at least one profile)
   pinHash: "",                // scrypt: "scrypt$N$r$p$saltB64$hashB64" — never plaintext
   provider: "anthropic",      // key into the llm provider registry
@@ -140,6 +140,12 @@ may add dedicated kid-mode animations per theme.
 
 ## Windows & UX
 
+**Design checkpoint (required, before any UI implementation):** produce 2–3 visual mockups
+of the chat box (plus profile picker and reaction bubble styling) — static HTML pages or
+rendered images are both fine — and present them to the parent for approval. Do not
+implement `chat.html`/`chat.css` until one is picked; treat the approved mockup as the
+visual spec. An appealing interface is a stated project priority, not polish.
+
 **Chat box** (`chat-window.js`, pattern-match `src/dashboard.js`): frameless, transparent
 corners, bottom-center of the display the pet is on, ~60% work-area width (min 480px,
 max 900px), height ~200px collapsed. Focusable (it's a text input — this is NOT the pet's
@@ -160,15 +166,21 @@ follows the pet, auto-sizes, avoids the Session HUD/permission-stack slots (whic
 in Kids Mode anyway), auto-hides ~6s after body streaming completes. One bubble at a time —
 new reaction replaces the old.
 
-**Kids Mode gating** (`kids-mode.js`):
-- Enter: from tray/settings; requires first-run setup (set PIN, add ≥1 profile) if not
-  `configured`. Exit: PIN prompt (3 wrong attempts → 60s lockout).
-- While active: suppress permission bubbles / HUD / dashboard / update bubble using the same
-  event-suppression semantics as DND (agents fall back to their own terminal/native approval
-  flows — Clawd must NOT auto-answer permissions; see AGENTS.md DND constraints). The pet
-  stays awake (kids chat shouldn't fight the sleep sequence mid-conversation: any chat
-  activity counts as user activity).
-- `kidsMode.enabled` persists across restarts (a locked machine that reboots stays kid-safe).
+**Kids Mode gating** (`kids-mode.js`) — Kids Mode is the DEFAULT; parent mode is the
+PIN-gated exception:
+- Until `configured`, the app behaves as stock Clawd. First-run setup (set PIN, add ≥1
+  profile) lives in Settings under "Kids Mode"; completing it sets `configured` and enters
+  Kids Mode.
+- Once `configured`, every app launch starts in Kids Mode regardless of the mode at last
+  quit (a reboot always lands kid-safe).
+- Entering parent mode: tray/settings action → PIN prompt (3 wrong attempts → 60s lockout).
+  Parent mode restores all normal Clawd features and lasts until the parent switches back
+  or the app restarts. Returning to Kids Mode never needs the PIN.
+- While Kids Mode is active: suppress permission bubbles / HUD / dashboard / update bubble
+  using the same event-suppression semantics as DND (agents fall back to their own
+  terminal/native approval flows — Clawd must NOT auto-answer permissions; see AGENTS.md
+  DND constraints). The pet stays awake (kids chat shouldn't fight the sleep sequence
+  mid-conversation: any chat activity counts as user activity).
 
 ## Transcripts
 
@@ -202,8 +214,9 @@ referenced files exist and the output contains the stance marker for each bucket
 
 ## Acceptance criteria
 
-1. Parent sets PIN + 3 profiles + API key in Settings; toggles Kids Mode; pet stays, all
-   agent surfaces mute; exiting requires PIN.
+1. Parent completes first-run setup (PIN + 3 profiles + API key) in Settings; app enters
+   Kids Mode and every subsequent launch starts in Kids Mode; all agent surfaces mute;
+   entering parent mode requires the PIN, and a restart drops back to Kids Mode.
 2. Kid opens box, picks name, asks "why is the sky blue?" → bubble "Hmm…" ≤ 200ms, thinking
    animation, then model reaction + emotion animation + streamed answer that follows the
    charter (rich answer + hook back).
